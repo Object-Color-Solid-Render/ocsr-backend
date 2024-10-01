@@ -6,10 +6,19 @@ import pywavefront
 app = Flask(__name__)
 CORS(app)
 
+def read_file(file_path: str) -> str:
+    file_content: str = ""
+    with open(file_path, 'r') as file:
+        file_content = file.read()
+    return file_content
+
 @app.route('/get_teapot_data', methods=['GET'])
 def get_teapot_data():
+    VERT_SHADER_PATH: str = "shaders/teapot.vert"
+    FRAG_SHADER_PATH: str = "shaders/teapot.frag"
+
     """Fetch teapot 3D model data, calculate normals, and return shaders"""
-    scene = pywavefront.Wavefront('../res/teapot.obj', collect_faces=True)
+    scene = pywavefront.Wavefront("meshes/teapot.obj", collect_faces=True)
 
     # Extract vertices and faces
     vertices = scene.vertices
@@ -19,24 +28,8 @@ def get_teapot_data():
     normals = calculate_normals(vertices, faces)
 
     # Shaders
-    vertex_shader = """
-    varying vec3 vNormal;
-    void main() {
-      vNormal = normal;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-    """
-
-    fragment_shader = """
-    uniform vec3 color;
-    varying vec3 vNormal;
-    void main() {
-      vec3 light = vec3(0.5, 0.2, 1.0);
-      light = normalize(light);
-      float dProd = max(0.0, dot(vNormal, light));
-      gl_FragColor = vec4(color * dProd, 1.0);
-    }
-    """
+    vertex_shader = read_file(VERT_SHADER_PATH)
+    fragment_shader = read_file(FRAG_SHADER_PATH)
 
     return jsonify({
         'vertices': vertices,
@@ -61,4 +54,5 @@ def calculate_normals(vertices, faces):
     return (normals / np.linalg.norm(normals, axis=1)[:, np.newaxis]).tolist()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    get_teapot_data()
+    #app.run(debug=True)
