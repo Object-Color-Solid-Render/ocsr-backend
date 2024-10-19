@@ -1,56 +1,29 @@
 # ObjectColorSolidRenderer
 
-An object color solid renderer built with React and TypeScript, using Vite as the build tool.
+An object color solid renderer backend.
 
 ## How to Run
 
 ### Prerequisites
-- **Node.js** and **npm** (or **yarn**) installed for the frontend.
-- **Python** installed for the backend.
+- `conda`
 
 ### Setup Instructions
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/ZackooObjectColorSolidRenderer
-   cd ObjectColorSolidRenderer
-   ```
-
-2. **Backend Setup (Flask)**
-   - Navigate to the backend directory:
-     ```bash
-     cd backend
-     ```
-   - Create and activate a virtual environment (recommended):
-     ```bash
-     python -m venv venv
-     source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-     ```
-   - Install Python dependencies:
-     ```bash
-     pip install Flask Flask-Cors numpy PyWavefront
-     ```
-   - Run the Flask app:
-     ```bash
-     python app.py
-     ```
-
-3. **Frontend Setup (React with Vite)**
-   - Navigate to the frontend directory:
-     ```bash
-     cd ../frontend
-     ```
-   - Install Node.js dependencies:
-     ```bash
-     npm install # or yarn install
-     ```
-   - Start the development server:
-     ```bash
-     npm run dev # yarn dev
-     ```
+- Create and activate a virtual environment (recommended):
+```bash
+conda create --name ocsr_backend python=3.11 
+conda activate ocsr_backend
+```
+- Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
+- Run the Flask app:
+```bash
+python app.py
+```
 
 ### Accessing the Application
-- The React frontend will be running on `http://localhost:5173` (default Vite port).
 - The Flask backend will be running on `http://localhost:5000`.
 
 ### Additional Information
