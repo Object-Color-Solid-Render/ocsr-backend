@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import bisect
 import pandas as pd
 
-def read_cone_response(csv_file_path):
+def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=None):
     # First, try to read the file without a header
 
     df = None
@@ -38,15 +38,22 @@ def read_cone_response(csv_file_path):
     elif len(df.columns) == 5:
         df.columns = ['Wavelength', 'S-Response', 'Q-Response', 'M-Response', 'L-Response']
     
-    # Filter to keep only wavelengths between 390 and 700 nm
-    df = df[(df['Wavelength'] >= 390) & (df['Wavelength'] <= 700)]
+    df = df[(df['Wavelength'] >= min_wavelength) & (df['Wavelength'] <= max_wavelength)]
+
+    # Enforce a maximum number of datapoints if specified
+    if max_points:
+        #wavelength_idxs=np.array([1,2,3])
+        wavelength_idxs = np.linspace(start=0, stop=df['Wavelength'].size, endpoint=False, num=max_points).astype(int)  # decimal values are possible, so make it int
+        
+        print(wavelength_idxs, df.shape[0])
+        df = df.iloc[wavelength_idxs, :]
 
     # Check the step size
-    wavelength_step = df['Wavelength'].iloc[1] - df['Wavelength'].iloc[0]
+    # wavelength_step = df['Wavelength'].iloc[1] - df['Wavelength'].iloc[0]
     
-    if wavelength_step == 1:
-        # Filter rows where the wavelength is a multiple of 10
-        df = df[df['Wavelength'] % 10 == 0]
+    # if wavelength_step < 10:
+    #     # Filter rows where the wavelength is a multiple of 10
+    #     df = df[df['Wavelength'] % 10 == 0]
 
     # Extract the relevant columns as arrays
     wavelengths = df['Wavelength'].to_numpy()
@@ -129,7 +136,7 @@ import os
 def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str):
     
     csv_file_path = os.path.join(os.getcwd(), "res/uploads/", response_file_name)
-    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path)
+    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=20)
     print("BRUH", wavelengths)
 
     if (wavelengths is None):
