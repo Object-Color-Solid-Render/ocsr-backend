@@ -68,6 +68,23 @@ def get_ocs_data():
         'l_response': l_response
     })
 
+@ocs_routes.route('/compute_ocs_slice', methods=['POST'])
+def compute_ocs_slice():
+    """Return the vertices of the OCS intersected by the plane specified"""
+    data = request.json()
+    vertices, colors, num_wavelengths = data.get('vertices'), data.get('colors'), data.get('num_wavelengths')
+    intersection_vertices, intersection_colors = get_y_slice(vertices, colors, num_wavelengths) 
+    return jsonify(
+        {
+            'vertices': intersection_vertices,
+            'colors': intersection_colors,
+            'vertexShader': get_vertex_shader(),
+            'fragmentShader': get_fragment_shader()
+        }
+    )
+
+
+
 @teapot_routes.route('/get_teapot_data', methods=['GET'])
 def get_teapot_data():
     """Fetch teapot 3D model data, calculate normals, and return shaders"""

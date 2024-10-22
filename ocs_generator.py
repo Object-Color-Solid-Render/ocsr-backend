@@ -220,4 +220,3 @@ def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: s
         wavelengths = wavelengths.tolist()
 
     return normalized_vertices.tolist(), indices.tolist(), colors, wavelengths, s_response.tolist(), m_response.tolist(), l_response.tolist()
-
