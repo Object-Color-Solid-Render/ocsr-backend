@@ -47,10 +47,7 @@ def get_ocs_data():
     print("generating ocs")
     vertices, indices, colors, wavelengths, s_response, m_response, l_response = generate_OCS(min_wavelength, max_wavelength, response_file_name, max_num_points)
     
-    #################### TODO REMOVE THIS ####################
-    normals = vertices
-    
-    #normals = calculate_normals(vertices, indices)
+    normals = calculate_normals(vertices, indices)
 
     if (len(vertices) != len(colors)):
         print("ERROR: vertices and colors have different lengths")

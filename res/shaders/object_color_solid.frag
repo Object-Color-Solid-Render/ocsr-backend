@@ -3,9 +3,11 @@ varying vec3 vColor;
 varying vec3 vNormal;
 
 void main() {
-    vec3 light = vec3(0.5, 0.2, 1.0);
-    light = normalize(light);
-    float dProd = max(0.0, dot(vNormal, light));
-    dProd = 1.0;
-    gl_FragColor = vec4((col * 0.01) + (vColor * dProd), 1.0);
+    float ambient_strength = 0.8;
+    float saturation_factor = 1.2;  // not accurate but looks good
+    vec3 vn = normalize(vNormal);
+    vec3 light_dir = normalize(vec3(1, 1, 1));
+    float light_strength = max(ambient_strength, dot(vn, light_dir));
+    vec3 garbage_term = (col * 0.01);   // here to use uniform col so shader compiles
+    gl_FragColor = vec4((vColor * light_strength) * saturation_factor + garbage_term, 1.0);
 }
