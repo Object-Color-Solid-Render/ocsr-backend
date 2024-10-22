@@ -4,7 +4,7 @@ varying vec3 vNormal;
 
 void main() {
     float ambient_strength = 0.8;
-    float saturation_factor = 1.25;  // not accurate but looks good
+    float saturation_factor = 1.2;  // not accurate but looks good
     vec3 vn = normalize(vNormal);
     vec3 light_dir = normalize(vec3(1, 1, 1));
     float light_strength = max(ambient_strength, dot(vn, light_dir));
