@@ -8,7 +8,10 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import bisect
 import pandas as pd
 
-def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=None):
+def get_idxs(collection, max_num_points):
+    return np.linspace(0, len(collection), endpoint=False, num=max_num_points).astype(int)
+
+def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_num_points=None):
     # First, try to read the file without a header
 
     df = None
@@ -41,9 +44,8 @@ def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points
     df = df[(df['Wavelength'] >= min_wavelength) & (df['Wavelength'] <= max_wavelength)]
 
     # Enforce a maximum number of datapoints if specified
-    if max_points:
-        #wavelength_idxs=np.array([1,2,3])
-        wavelength_idxs = np.linspace(start=0, stop=df['Wavelength'].size, endpoint=False, num=max_points).astype(int)  # decimal values are possible, so make it int
+    if max_num_points:
+        wavelength_idxs = get_idxs(collection=df, max_num_points=max_num_points)  # decimal values are possible, so make it int
         
         print(wavelength_idxs, df.shape[0])
         df = df.iloc[wavelength_idxs, :]
@@ -133,18 +135,22 @@ def triangles_to_vertices_indices(triangles: np.ndarray):
     return vertices, indices
 
 import os
-def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str):
+def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str, max_num_points: int = None):
     
     csv_file_path = os.path.join(os.getcwd(), "res/uploads/", response_file_name)
-    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=20)
+    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_num_points)
     print("BRUH", wavelengths)
 
-    if (wavelengths is None):
+    if wavelengths is None:
         # Cone responses of a typical trichromat.
         standard_trichromat = Observer.trichromat(np.arange(min_wavelength, max_wavelength + 1, 3))
-        s_response = standard_trichromat.sensors[0].data
-        m_response = standard_trichromat.sensors[1].data
-        l_response = standard_trichromat.sensors[2].data
+        s_response, m_response, l_response = standard_trichromat.sensors[0].data, standard_trichromat.sensors[1].data, standard_trichromat.sensors[2].data 
+        
+        # Only grab max_num_points amount of data points
+        if max_num_points:
+            wavelength_idxs = get_idxs(s_response, max_num_points)
+            s_response, m_response, l_response = s_response[wavelength_idxs], m_response[wavelength_idxs], l_response[wavelength_idxs]
+            
     else:
         # Update the indices to the wavelengths we care about
         # start_idx = bisect.bisect_left(wavelengths, min_wavelength)
@@ -209,8 +215,9 @@ def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: s
         colors.extend(missing_colors)  # Extend the colors list with the missing colors
 
     if wavelengths is None:
-        wavelengths = list(range(min_wavelength, max_wavelength + 1, 3))
+        wavelengths = np.arange(min_wavelength, max_wavelength + 1, 3)[wavelength_idxs].tolist()
     else:
         wavelengths = wavelengths.tolist()
 
     return normalized_vertices.tolist(), indices.tolist(), colors, wavelengths, s_response.tolist(), m_response.tolist(), l_response.tolist()
+
