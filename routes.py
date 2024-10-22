@@ -40,11 +40,12 @@ def get_ocs_data():
     """Generate object color solid geometry, colors, normals, and return shaders"""
     min_wavelength, max_wavelength = int(request.args.get('minWavelength', 390)), int(request.args.get('maxWavelength', 700))
     response_file_name = request.args.get('responseFileName', '')
+    is_max_basis = True # TODO # request.args.get('isMaxBasis', False)
 
     print(f"min: {min_wavelength}")
     print(f"response file name: {response_file_name}")
     print("generating ocs")
-    vertices, indices, colors, wavelengths, s_response, m_response, l_response = generate_OCS(min_wavelength, max_wavelength, response_file_name)
+    vertices, indices, colors, wavelengths, s_response, m_response, l_response = generate_OCS(min_wavelength, max_wavelength, response_file_name, is_max_basis)
     
     normals = calculate_normals(vertices, indices)
 
