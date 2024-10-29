@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from model_utils import load_obj, calculate_normals
 from ocs_generator import generate_OCS
 from shaders import get_vertex_shader, get_fragment_shader
+from ocs_slice import get_y_slice
 
 teapot_routes = Blueprint('teapot_routes', __name__)
 ocs_routes = Blueprint('ocs_routes', __name__)
@@ -65,12 +66,21 @@ def get_ocs_data():
         'l_response': l_response
     })
 
-@ocs_routes.route('/compute_ocs_slice', methods=['POST'])
+# Use a POST request when it later gets adapted to using vertices
+# @ocs_routes.route('/compute_ocs_slice', methods=['POST']) 
+@ocs_routes.route('/compute_ocs_slice', methods=['GET']) 
 def compute_ocs_slice():
     """Return the vertices of the OCS intersected by the plane specified"""
-    data = request.json()
-    vertices, colors, num_wavelengths = data.get('vertices'), data.get('colors'), data.get('num_wavelengths')
-    intersection_vertices, intersection_colors = get_y_slice(vertices, colors, num_wavelengths) 
+    # data = request.get_json()
+    # vertices, colors, num_wavelengths, y = (
+    #     data.get('vertices', np.array([])), 
+    #     data.get('colors', np.array([])), 
+    #     int(data.get('num_wavelengths', 0)),
+    #     float(data.get('y', 0)),
+    # )
+    vertices, colors, y = request.args.get('vertices', []), request.args.get('colors', []), float(request.args.get('y', 0))
+    num_wavelengths = 0 # TODO: FIX THIS
+    intersection_vertices, intersection_colors = get_y_slice(vertices, colors, num_wavelengths, y) 
     return jsonify(
         {
             'vertices': intersection_vertices,

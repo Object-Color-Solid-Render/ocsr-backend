@@ -8,9 +8,8 @@ from tqdm import tqdm
 from colour import sd_to_XYZ, XYZ_to_xy, XYZ_to_sRGB
 
 
-# TODO: Generalize this to non-human responses. THus using the vertices and colors provided
-def get_y_slice(vertices, colors, wavelengths):
-    ## EDIT WAVELENGTHS (this is defined by the solid we rendered). Note that it'll error if cut points are not in range
+# TODO: Generalize this to non-human responses. THus using the vertices and colors provided. Currently the args aren't doing anything yet
+def get_y_slice(vertices, colors, wavelengths, y):
     wavelengths = np.arange(390, 701, 5)
     n = len(wavelengths)
     standard_trichromat = Observer.trichromat(wavelengths)
@@ -128,7 +127,7 @@ def get_y_slice(vertices, colors, wavelengths):
     # Here, d will get updated with the value passed into the backend
     intersection_points = []
     intersection_xyz = []
-    a, b, c, d = 0, 0, 1, 0.5    # ax + by + cz = d
+    a, b, c, d = 0, 0, 1, y    # ax + by + cz = d
     for i in range(edges.shape[0]):
         p1 = edges[i][0]
         p2 = edges[i][1]
@@ -148,3 +147,5 @@ def get_y_slice(vertices, colors, wavelengths):
         intersection_rgb.append(np.clip(XYZ_to_sRGB(i_xyz, illuminant=chromaticity_coord), 0, 1))
     intersection_points = np.array(intersection_points)
     intersection_rgb = np.array(intersection_rgb)
+
+    return intersection_points, intersection_points
