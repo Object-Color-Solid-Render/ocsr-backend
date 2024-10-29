@@ -131,12 +131,12 @@ def triangles_to_vertices_indices(triangles: np.ndarray):
     
     return vertices, indices
 
-import os
-
-def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str, max_num_points: int = None):
+def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str, max_basis: bool):
+    
     csv_file_path = os.path.join(os.getcwd(), "res/uploads/", response_file_name)
-    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_num_points)
-
+    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=20)
+    print("BRUH", wavelengths)
+    
     if wavelengths is None:
         # Cone responses of a typical trichromat.
         freq = 15
@@ -203,33 +203,34 @@ def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: s
             reflectance = Spectra(wavelengths=wavelengths, data=reflectance_data)
             face_colors[(i - 1) * n + j] = reflectance.to_rgb(illuminant)    # Bottleneck. Takes about 3ms. 
 
-    # Uses ideas from Jessica's paper, on chapter 3.2 The Max Basis.
-    # We use the cutpoints that Jessica shows to be optimal for the trichromatic case.
-    cutpoint_1 = 487
-    cutpoint_2 = 573
-    index_1 = None
-    index_2 = None
-    for i, wavelength in enumerate(wavelengths):
-        if index_1 is None and wavelength > cutpoint_1:
-            index_1 = i
-        if index_2 is None and wavelength >= cutpoint_2:
-            index_2 = i
-            break
+    if (max_basis):
+        # Uses ideas from Jessica's paper, on chapter 3.2 The Max Basis.
+        # We use the cutpoints that Jessica shows to be optimal for the trichromatic case.
+        cutpoint_1 = 487
+        cutpoint_2 = 573
+        index_1 = None
+        index_2 = None
+        for i, wavelength in enumerate(wavelengths):
+            if index_1 is None and wavelength > cutpoint_1:
+                index_1 = i
+            if index_2 is None and wavelength >= cutpoint_2:
+                index_2 = i
+                break
 
-    # We calculate the vectors p1, p2 and p3 as shown in the paper.
-    # We "project the partition into the cone response basis" by summing up all the lms_responses within each partition.
-    # Note that our earlier calculations for lms_responses includes the illuminant already.
-    p1 = np.sum(lms_responses[:, :index_1], axis=1).reshape((3, 1))
-    p2 = np.sum(lms_responses[:, index_1:index_2], axis=1).reshape((3, 1))
-    p3 = np.sum(lms_responses[:, index_2:], axis=1).reshape((3, 1))
+        # We calculate the vectors p1, p2 and p3 as shown in the paper.
+        # We "project the partition into the cone response basis" by summing up all the lms_responses within each partition.
+        # Note that our earlier calculations for lms_responses includes the illuminant already.
+        p1 = np.sum(lms_responses[:, :index_1], axis=1).reshape((3, 1))
+        p2 = np.sum(lms_responses[:, index_1:index_2], axis=1).reshape((3, 1))
+        p3 = np.sum(lms_responses[:, index_2:], axis=1).reshape((3, 1))
 
-    # We then create a transformation matrix that maps p1 to (1, 0, 0), p2 to (0, 1, 0) and p3 to (1, 0, 0).
-    # p1, p2 and p3 correspond to the ideal R, G, B points on our object color solid, 
-    # and we are mapping them onto the R, G, B points on the RGB cube.
-    # We are essentially "stretching" our object color solid so that it approximates the RGB cube.
-    transformation_matrix = np.linalg.inv(np.hstack((p1, p2, p3)))
-    faces_transformed = np.matmul(faces, transformation_matrix.T)
-    faces = faces_transformed
+        # We then create a transformation matrix that maps p1 to (1, 0, 0), p2 to (0, 1, 0) and p3 to (1, 0, 0).
+        # p1, p2 and p3 correspond to the ideal R, G, B points on our object color solid, 
+        # and we are mapping them onto the R, G, B points on the RGB cube.
+        # We are essentially "stretching" our object color solid so that it approximates the RGB cube.
+        transformation_matrix = np.linalg.inv(np.hstack((p1, p2, p3)))
+        faces_transformed = np.matmul(faces, transformation_matrix.T)
+        faces = faces_transformed
 
     tris = quads_to_triangles(faces)
     vertices, indices = triangles_to_vertices_indices(tris)
