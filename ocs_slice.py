@@ -148,4 +148,10 @@ def get_y_slice(vertices, colors, wavelengths, y):
     intersection_points = np.array(intersection_points)
     intersection_rgb = np.array(intersection_rgb)
 
-    return intersection_points, intersection_points
+    # project the intersection points onto the cut plane
+    
+
+    # tris = quads_to_triangles(faces)
+    # vertices, indices = triangles_to_vertices_indices(tris)
+
+    return intersection_points.tolist(), intersection_rgb.tolist()

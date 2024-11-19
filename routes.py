@@ -42,7 +42,7 @@ def get_ocs_data():
     min_wavelength, max_wavelength = int(request.args.get('minWavelength', 390)), int(request.args.get('maxWavelength', 700))
     max_num_points = int(request.args.get('maxNumPoints', 20))
     response_file_name = request.args.get('responseFileName', '')
-    is_max_basis = True # TODO # request.args.get('isMaxBasis', False)
+    is_max_basis = request.args.get('responseFileName', '') == 'max-basis'  # TODO Fix this to a separate toggle
 
     print(f"min: {min_wavelength}")
     print(f"response file name: {response_file_name}")
@@ -79,6 +79,7 @@ def compute_ocs_slice():
     #     int(data.get('num_wavelengths', 0)),
     #     float(data.get('y', 0)),
     # )
+    print("GENERATING SLICE!")
     vertices, colors, y = request.args.get('vertices', []), request.args.get('colors', []), float(request.args.get('y', 0))
     num_wavelengths = 0 # TODO: FIX THIS
     intersection_vertices, intersection_colors = get_y_slice(vertices, colors, num_wavelengths, y) 

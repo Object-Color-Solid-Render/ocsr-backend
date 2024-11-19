@@ -25,5 +25,9 @@ def calculate_normals(vertices, indices):
 
         for i in index:
             normals[i] += normal            
-
-    return (normals / np.linalg.norm(normals, axis=1)[:, np.newaxis]).tolist()
+    
+    norms = np.linalg.norm(normals, axis=1)
+    zeros = norms == 0
+    norms[zeros] = 1 # since it's is already a zero vector, it's fine to just leave it like this
+    norms = norms[:, np.newaxis]
+    return (normals/norms).tolist()

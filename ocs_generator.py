@@ -19,10 +19,10 @@ def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points
     try:
         df = pd.read_csv(csv_file_path, header=None)
     except FileNotFoundError:
-        print("File not found!")
+        print("Cone response file not found!")
         return None, None, None, None
     except:
-        print("File not found!")
+        print("Cone response file not found!")
         return None, None, None, None
     
     # Check if the first value in the file is numeric to determine if there's a header
@@ -134,9 +134,9 @@ def triangles_to_vertices_indices(triangles: np.ndarray):
 def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str, max_basis: bool):
     
     csv_file_path = os.path.join(os.getcwd(), "res/uploads/", response_file_name)
-    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=20)
-    print("BRUH", wavelengths)
-    
+    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength)
+
+    print("Generate an OCS")
     if wavelengths is None:
         # Cone responses of a typical trichromat.
         freq = 15
