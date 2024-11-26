@@ -20,6 +20,7 @@ ALLOWED_EXTENSIONS = {'txt', 'csv'}
 def to_list(l):
     return l.tolist() if isinstance(l, np.ndarray) else l
 
+# TODO, remove this stuff
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -73,6 +74,7 @@ def get_ocs_data():
     print("======================")
 
     peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
+    activeCones = [isCone1Active, isCone2Active, isCone3Active, isCone4Active]
 
     wavelengths = np.linspace(min_wavelength, max_wavelength, num=wavelength_sample_resolution)
 
