@@ -4,7 +4,7 @@ def govardovskii_template(
         wavelengths, 
         lambda_max, 
         A1_proportion=100, 
-        ommit_beta_band=False
+        omit_beta_band=False
         ):
     """
     Implements Govardovskii's (2000) visual pigment template with A1/A2 chromophore mixing.
@@ -36,7 +36,7 @@ def govardovskii_template(
                     0.674)
     beta_A1 = 0.26 * np.exp(-((wavelengths - lambda_beta_A1) / 
                               beta_bandwidth_A1)**2)
-    sensitivity_A1 = alpha_A1 + (0 if ommit_beta_band else beta_A1)
+    sensitivity_A1 = alpha_A1 + (0 if omit_beta_band else beta_A1)
     
     # A2 template parameters
     a2 = 0.875 + 0.0268 * np.exp((lambda_max - 665) / 40.7)
@@ -51,7 +51,7 @@ def govardovskii_template(
                     0.5343)
     beta_A2 = 0.26 * np.exp(-((wavelengths - lambda_beta_A2) / 
                               beta_bandwidth_A2)**2)
-    sensitivity_A2 = alpha_A2 + (0 if ommit_beta_band else beta_A2)
+    sensitivity_A2 = alpha_A2 + (0 if omit_beta_band else beta_A2)
     
     # Combine A1 and A2 templates according to proportion
     A1_weight = A1_proportion / 100

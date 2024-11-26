@@ -97,7 +97,7 @@ def get_ocs_data():
     curves = [govardovskii_template(wavelengths=wavelengths, 
                             lambda_max=peak,
                             A1_proportion=100,
-                            ommit_beta_band=ommit_beta_band) for peak in peaks]
+                            omit_beta_band=omit_beta_band) for peak in peaks]
 
     vertices, indices, colors = generate_OCS2(curves, wavelengths, is_max_basis)
     normals = calculate_normals(vertices, indices)
