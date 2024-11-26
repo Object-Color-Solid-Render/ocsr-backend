@@ -50,32 +50,27 @@ def get_ocs_data():
     min_wavelength = int(request.args.get('minWavelength', 390))
     max_wavelength = int(request.args.get('maxWavelength', 700))
 
-    # TODO, implement in front end    
-    wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 18))
+    # default values should yield garbage; we always want request to work
+    wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 5))
     is_max_basis = request.args.get('isMaxBasis', False)
-    ommit_beta_band = request.args.get('ommitBetaBand', True)
+    omit_beta_band = request.args.get('omitBetaBand', True)
     peakWavelength1 = int(request.args.get('peakWavelength1', 500))
     peakWavelength2 = int(request.args.get('peakWavelength2', 510))
     peakWavelength3 = int(request.args.get('peakWavelength3', 520))
     peakWavelength4 = int(request.args.get('peakWavelength4', 530))   # not used currently
-    isCone1Active = request.args.get('isCone1Active', True)
-    isCone2Active = request.args.get('isCone2Active', True)
-    isCone3Active = request.args.get('isCone3Active', True)
-    isCone4Active = request.args.get('isCone4Active', True)
+    isCone1Active = request.args.get('isCone1Active', False)
+    isCone2Active = request.args.get('isCone2Active', False)
+    isCone3Active = request.args.get('isCone3Active', False)
+    isCone4Active = request.args.get('isCone4Active', False)
 
-    print("=== Parameters ===")
-    print("wavelength sample resolution: ", wavelength_sample_resolution)
-    print("is max basis: ", is_max_basis)
-    print("ommit beta band: ", ommit_beta_band)
-    print("peak wavelength 1: ", peakWavelength1)
-    print("peak wavelength 2: ", peakWavelength2)
-    print("peak wavelength 3: ", peakWavelength3)
-    print("peak wavelength 4: ", peakWavelength4)
-    print("is cone 1 active: ", isCone1Active)
-    print("is cone 2 active: ", isCone2Active)
-    print("is cone 3 active: ", isCone3Active)
-    print("is cone 4 active: ", isCone4Active)
-    print(":::::::::::::::::::")
+    print("===== Parameters =====")
+    print("Wavelength Bouunds: ", min_wavelength, max_wavelength)
+    print("Peak Wavelengths: ", peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4)
+    print("Active Cones: ", isCone1Active, isCone2Active, isCone3Active, isCone4Active)
+    print("Omit Beta Band: ", omit_beta_band)
+    print("Is Max Basis: ", is_max_basis)
+    print("Wavelength Sample Resolution: ", wavelength_sample_resolution)
+    print("======================")
 
     peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
 
@@ -85,7 +80,7 @@ def get_ocs_data():
     curves = [govardovskii_template(wavelengths=wavelengths, 
                             lambda_max=peak,
                             A1_proportion=100,
-                            ommit_beta_band=ommit_beta_band) for peak in peaks]
+                            omit_beta_band=omit_beta_band) for peak in peaks]
 
     vertices, indices, colors = generate_OCS2(curves, wavelengths, is_max_basis)
     normals = calculate_normals(vertices, indices)
