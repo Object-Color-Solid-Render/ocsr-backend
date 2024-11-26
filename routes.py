@@ -12,6 +12,7 @@ from spectralDBLoader import read_csv
 teapot_routes = Blueprint('teapot_routes', __name__)
 ocs_routes = Blueprint('ocs_routes', __name__)
 file_routes = Blueprint('file_routes', __name__)
+db_routes = Blueprint('db_routes', __name__)
 
 UPLOAD_FOLDER = 'res/uploads'
 ALLOWED_EXTENSIONS = {'txt', 'csv'}
@@ -141,6 +142,14 @@ def compute_ocs_slice():
     )
 
 
+@db_routes.route('/get_spectral_db', methods=['GET'])
+def get_spectral_db():
+
+    data = read_csv("res/Spectral Sensitivity Database.csv")
+
+    return jsonify({
+        'data': data
+    })
 
 @teapot_routes.route('/get_teapot_data', methods=['GET'])
 def get_teapot_data():
@@ -157,3 +166,4 @@ def get_teapot_data():
         'vertexShader': get_vertex_shader(),
         'fragmentShader': get_fragment_shader()
     })
+    
