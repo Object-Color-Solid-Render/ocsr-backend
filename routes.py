@@ -51,17 +51,35 @@ def get_ocs_data():
     max_wavelength = int(request.args.get('maxWavelength', 700))
 
     # TODO, implement in front end    
-    max_num_points = int(request.args.get('maxNumPoints', 18))
+    wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 18))
     is_max_basis = request.args.get('isMaxBasis', False)
     ommit_beta_band = request.args.get('ommitBetaBand', True)
-    peakWavelength1 = int(request.args.get('peakWavelength1', 420))
-    peakWavelength2 = int(request.args.get('peakWavelength2', 535))
-    peakWavelength3 = int(request.args.get('peakWavelength3', 565 + 100))
-    peakWavelength4 = int(request.args.get('peakWavelength4', 0))   # not used currently
+    peakWavelength1 = int(request.args.get('peakWavelength1', 500))
+    peakWavelength2 = int(request.args.get('peakWavelength2', 510))
+    peakWavelength3 = int(request.args.get('peakWavelength3', 520))
+    peakWavelength4 = int(request.args.get('peakWavelength4', 530))   # not used currently
+    isCone1Active = request.args.get('isCone1Active', True)
+    isCone2Active = request.args.get('isCone2Active', True)
+    isCone3Active = request.args.get('isCone3Active', True)
+    isCone4Active = request.args.get('isCone4Active', True)
+
+    print("=== Parameters ===")
+    print("wavelength sample resolution: ", wavelength_sample_resolution)
+    print("is max basis: ", is_max_basis)
+    print("ommit beta band: ", ommit_beta_band)
+    print("peak wavelength 1: ", peakWavelength1)
+    print("peak wavelength 2: ", peakWavelength2)
+    print("peak wavelength 3: ", peakWavelength3)
+    print("peak wavelength 4: ", peakWavelength4)
+    print("is cone 1 active: ", isCone1Active)
+    print("is cone 2 active: ", isCone2Active)
+    print("is cone 3 active: ", isCone3Active)
+    print("is cone 4 active: ", isCone4Active)
+    print(":::::::::::::::::::")
 
     peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
 
-    wavelengths = np.linspace(min_wavelength, max_wavelength, num=max_num_points)
+    wavelengths = np.linspace(min_wavelength, max_wavelength, num=wavelength_sample_resolution)
 
     # curves is [S, M, L, Q]
     curves = [govardovskii_template(wavelengths=wavelengths, 
