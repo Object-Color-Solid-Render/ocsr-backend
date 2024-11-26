@@ -53,8 +53,8 @@ def get_ocs_data():
 
     # default values should yield garbage; we always want request to work
     wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 5))
-    is_max_basis = request.args.get('isMaxBasis', False)
-    omit_beta_band = request.args.get('omitBetaBand', True)
+    is_max_basis = request.args.get('isMaxBasis', False) == "true"
+    omit_beta_band = request.args.get('omitBetaBand', True) == "true"
     peakWavelength1 = int(request.args.get('peakWavelength1', 500))
     peakWavelength2 = int(request.args.get('peakWavelength2', 510))
     peakWavelength3 = int(request.args.get('peakWavelength3', 520))
