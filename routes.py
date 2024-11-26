@@ -46,22 +46,34 @@ def upload_file():
 @ocs_routes.route('/get_ocs_data', methods=['GET'])
 def get_ocs_data():
     """Generate object color solid geometry, colors, normals, and return shaders"""
-    
+
     min_wavelength = int(request.args.get('minWavelength', 390))
     max_wavelength = int(request.args.get('maxWavelength', 700))
 
-    # TODO, implement in front end    
     wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 18))
     is_max_basis = request.args.get('isMaxBasis', False)
     ommit_beta_band = request.args.get('ommitBetaBand', True)
-    peakWavelength1 = int(request.args.get('peakWavelength1', 500))
-    peakWavelength2 = int(request.args.get('peakWavelength2', 510))
-    peakWavelength3 = int(request.args.get('peakWavelength3', 520))
-    peakWavelength4 = int(request.args.get('peakWavelength4', 530))   # not used currently
-    isCone1Active = request.args.get('isCone1Active', True)
-    isCone2Active = request.args.get('isCone2Active', True)
-    isCone3Active = request.args.get('isCone3Active', True)
-    isCone4Active = request.args.get('isCone4Active', True)
+
+    peakWaveLengthsAndActivity: 'list[tuple[int, bool]]' = [
+        (int(request.args.get('peakWavelength1', 500)), request.args.get('isCone1Active', True)),
+        (int(request.args.get('peakWavelength2', 510)), request.args.get('isCone2Active', True)),
+        (int(request.args.get('peakWavelength3', 520)), request.args.get('isCone3Active', True)),
+        (int(request.args.get('peakWavelength4', 530)), request.args.get('isCone4Active', True))
+    ]
+    
+    # sort values on wavelength
+    
+    peakWaveLengthsAndActivity.sort(key=lambda x: x[0])
+
+    peakWavelength1 = peakWaveLengthsAndActivity[0][0]
+    peakWavelength2 = peakWaveLengthsAndActivity[1][0]
+    peakWavelength3 = peakWaveLengthsAndActivity[2][0]
+    peakWavelength4 = peakWaveLengthsAndActivity[3][0]
+    
+    isCone1Active = peakWaveLengthsAndActivity[0][1]
+    isCone2Active = peakWaveLengthsAndActivity[1][1]
+    isCone3Active = peakWaveLengthsAndActivity[2][1]
+    isCone4Active = peakWaveLengthsAndActivity[3][1]
 
     print("=== Parameters ===")
     print("wavelength sample resolution: ", wavelength_sample_resolution)
@@ -111,7 +123,7 @@ def get_ocs_data():
 
 
 # Use a POST request when it later gets adapted to using vertices
-# @ocs_routes.route('/compute_ocs_slice', methods=['POST']) 
+# @ocs_routes.route('/compute_ocs_slice', methods=['POST'])
 @ocs_routes.route('/compute_ocs_slice', methods=['GET']) 
 def compute_ocs_slice():
     """Return the vertices of the OCS intersected by the plane specified"""
@@ -134,7 +146,6 @@ def compute_ocs_slice():
             'fragmentShader': get_fragment_shader()
         }
     )
-
 
 
 @teapot_routes.route('/get_teapot_data', methods=['GET'])
