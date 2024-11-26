@@ -26,9 +26,9 @@ def read_csv(file_path):
     return data
 
 # Example usage
-file_path = "res/Spectral Sensitivity Database.csv"
-rows = read_csv(file_path)
+#file_path = "res/Spectral Sensitivity Database.csv"
+#rows = read_csv(file_path)
 
 # Print the processed data
-for row in rows:
-    print(row)
+#for row in rows:
+#    print(row)

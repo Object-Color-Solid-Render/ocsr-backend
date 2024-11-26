@@ -3,9 +3,11 @@ import os
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.utils import secure_filename
 from model_utils import load_obj, calculate_normals
-from ocs_generator import generate_OCS
+from ocs_generator import generate_OCS, generate_OCS2
 from shaders import get_vertex_shader, get_fragment_shader
 from ocs_slice import get_y_slice
+from govardovskii import govardovskii_template
+from spectralDBLoader import read_csv
 
 teapot_routes = Blueprint('teapot_routes', __name__)
 ocs_routes = Blueprint('ocs_routes', __name__)
@@ -13,6 +15,10 @@ file_routes = Blueprint('file_routes', __name__)
 
 UPLOAD_FOLDER = 'res/uploads'
 ALLOWED_EXTENSIONS = {'txt', 'csv'}
+
+# turns np arrays to lists and lists to lists
+def to_list(l):
+    return l.tolist() if isinstance(l, np.ndarray) else l
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -36,36 +42,55 @@ def upload_file():
     else:
         return jsonify({'error': 'File type not allowed'}), 400
 
+
 @ocs_routes.route('/get_ocs_data', methods=['GET'])
 def get_ocs_data():
     """Generate object color solid geometry, colors, normals, and return shaders"""
-    min_wavelength, max_wavelength = int(request.args.get('minWavelength', 390)), int(request.args.get('maxWavelength', 700))
-    max_num_points = int(request.args.get('maxNumPoints', 20))
-    response_file_name = request.args.get('responseFileName', '')
-    is_max_basis = request.args.get('responseFileName', '') == 'max-basis'  # TODO Fix this to a separate toggle
-
-    print(f"min: {min_wavelength}")
-    print(f"response file name: {response_file_name}")
-    print("generating ocs")
-    vertices, indices, colors, wavelengths, s_response, m_response, l_response = generate_OCS(min_wavelength, max_wavelength, response_file_name, is_max_basis)
     
+    min_wavelength = int(request.args.get('minWavelength', 390))
+    max_wavelength = int(request.args.get('maxWavelength', 700))
+
+    # TODO, implement in front end    
+    max_num_points = int(request.args.get('maxNumPoints', 18))
+    is_max_basis = request.args.get('isMaxBasis', False)
+    ommit_beta_band = request.args.get('ommitBetaBand', True)
+    peakWavelength1 = int(request.args.get('peakWavelength1', 420))
+    peakWavelength2 = int(request.args.get('peakWavelength2', 535))
+    peakWavelength3 = int(request.args.get('peakWavelength3', 565 + 100))
+    peakWavelength4 = int(request.args.get('peakWavelength4', 0))   # not used currently
+
+    peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
+
+    wavelengths = np.linspace(min_wavelength, max_wavelength, num=max_num_points)
+
+    # curves is [S, M, L, Q]
+    curves = [govardovskii_template(wavelengths=wavelengths, 
+                            lambda_max=peak,
+                            A1_proportion=100,
+                            ommit_beta_band=ommit_beta_band) for peak in peaks]
+
+    vertices, indices, colors = generate_OCS2(curves, wavelengths, is_max_basis)
     normals = calculate_normals(vertices, indices)
 
-    if (len(vertices) != len(colors)):
+    if len(vertices) != len(colors):
         print("ERROR: vertices and colors have different lengths")
 
-    return jsonify({
-        'vertices': vertices,
-        'indices': indices,
-        'normals': normals,
-        'colors': colors,
+    # Convert all numpy arrays to lists
+    response_data = {
+        'vertices': to_list(vertices),
+        'indices': to_list(indices),
+        'normals': to_list(normals),
+        'colors': to_list(colors),
         'vertexShader': get_vertex_shader(),
         'fragmentShader': get_fragment_shader(),
-        'wavelengths': wavelengths,
-        's_response': s_response,
-        'm_response': m_response, 
-        'l_response': l_response
-    })
+        'wavelengths': to_list(wavelengths),
+        's_response': to_list(curves[0]),
+        'm_response': to_list(curves[1]),
+        'l_response': to_list(curves[2])
+    }
+
+    return jsonify(response_data)
+
 
 # Use a POST request when it later gets adapted to using vertices
 # @ocs_routes.route('/compute_ocs_slice', methods=['POST']) 

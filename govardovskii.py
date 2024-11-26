@@ -62,4 +62,4 @@ def govardovskii_template(
     # Normalize
     normalized_sensitivity = total_sensitivity / np.max(total_sensitivity)
     
-    return wavelengths, normalized_sensitivity
+    return normalized_sensitivity
