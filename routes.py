@@ -47,31 +47,48 @@ def upload_file():
 @ocs_routes.route('/get_ocs_data', methods=['GET'])
 def get_ocs_data():
     """Generate object color solid geometry, colors, normals, and return shaders"""
-    
+
     min_wavelength = int(request.args.get('minWavelength', 390))
     max_wavelength = int(request.args.get('maxWavelength', 700))
 
-    # default values should yield garbage; we always want request to work
-    wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 5))
+    wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 18))
     is_max_basis = request.args.get('isMaxBasis', False)
-    omit_beta_band = request.args.get('omitBetaBand', True)
-    peakWavelength1 = int(request.args.get('peakWavelength1', 500))
-    peakWavelength2 = int(request.args.get('peakWavelength2', 510))
-    peakWavelength3 = int(request.args.get('peakWavelength3', 520))
-    peakWavelength4 = int(request.args.get('peakWavelength4', 530))   # not used currently
-    isCone1Active = request.args.get('isCone1Active', False)
-    isCone2Active = request.args.get('isCone2Active', False)
-    isCone3Active = request.args.get('isCone3Active', False)
-    isCone4Active = request.args.get('isCone4Active', False)
+    ommit_beta_band = request.args.get('ommitBetaBand', True)
 
-    print("===== Parameters =====")
-    print("Wavelength Bouunds: ", min_wavelength, max_wavelength)
-    print("Peak Wavelengths: ", peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4)
-    print("Active Cones: ", isCone1Active, isCone2Active, isCone3Active, isCone4Active)
-    print("Omit Beta Band: ", omit_beta_band)
-    print("Is Max Basis: ", is_max_basis)
-    print("Wavelength Sample Resolution: ", wavelength_sample_resolution)
-    print("======================")
+    peakWaveLengthsAndActivity: 'list[tuple[int, bool]]' = [
+        (int(request.args.get('peakWavelength1', 500)), request.args.get('isCone1Active', True)),
+        (int(request.args.get('peakWavelength2', 510)), request.args.get('isCone2Active', True)),
+        (int(request.args.get('peakWavelength3', 520)), request.args.get('isCone3Active', True)),
+        (int(request.args.get('peakWavelength4', 530)), request.args.get('isCone4Active', True))
+    ]
+    
+    # sort values on wavelength
+    
+    peakWaveLengthsAndActivity.sort(key=lambda x: x[0])
+
+    peakWavelength1 = peakWaveLengthsAndActivity[0][0]
+    peakWavelength2 = peakWaveLengthsAndActivity[1][0]
+    peakWavelength3 = peakWaveLengthsAndActivity[2][0]
+    peakWavelength4 = peakWaveLengthsAndActivity[3][0]
+    
+    isCone1Active = peakWaveLengthsAndActivity[0][1]
+    isCone2Active = peakWaveLengthsAndActivity[1][1]
+    isCone3Active = peakWaveLengthsAndActivity[2][1]
+    isCone4Active = peakWaveLengthsAndActivity[3][1]
+
+    print("=== Parameters ===")
+    print("wavelength sample resolution: ", wavelength_sample_resolution)
+    print("is max basis: ", is_max_basis)
+    print("ommit beta band: ", ommit_beta_band)
+    print("peak wavelength 1: ", peakWavelength1)
+    print("peak wavelength 2: ", peakWavelength2)
+    print("peak wavelength 3: ", peakWavelength3)
+    print("peak wavelength 4: ", peakWavelength4)
+    print("is cone 1 active: ", isCone1Active)
+    print("is cone 2 active: ", isCone2Active)
+    print("is cone 3 active: ", isCone3Active)
+    print("is cone 4 active: ", isCone4Active)
+    print(":::::::::::::::::::")
 
     peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
     activeCones = [isCone1Active, isCone2Active, isCone3Active, isCone4Active]
@@ -108,7 +125,7 @@ def get_ocs_data():
 
 
 # Use a POST request when it later gets adapted to using vertices
-# @ocs_routes.route('/compute_ocs_slice', methods=['POST']) 
+# @ocs_routes.route('/compute_ocs_slice', methods=['POST'])
 @ocs_routes.route('/compute_ocs_slice', methods=['GET']) 
 def compute_ocs_slice():
     """Return the vertices of the OCS intersected by the plane specified"""
@@ -131,7 +148,6 @@ def compute_ocs_slice():
             'fragmentShader': get_fragment_shader()
         }
     )
-
 
 
 @teapot_routes.route('/get_teapot_data', methods=['GET'])
