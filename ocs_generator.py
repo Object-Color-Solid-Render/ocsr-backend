@@ -9,8 +9,43 @@ import pandas as pd
 import os
 from tqdm import tqdm
 
+from govardovskii import govardovskii_template
+
 def get_idxs(collection, max_num_points):
     return np.linspace(0, len(collection), endpoint=False, num=max_num_points).astype(int)
+
+def peaks_to_curves(
+        peaks: list, 
+        sample_frequency: int, 
+        min_wavelength: int, 
+        max_wavelength: int, 
+        ommit_beta_band: bool
+        ):
+    """Convert a list of peaks into a list of curves, each with a start and end wavelength"""
+    
+    assert len(peaks) == 4
+    assert sample_frequency > 0
+    assert min_wavelength < max_wavelength
+    assert min_wavelength > 0
+    assert type(peaks[0]) == int
+    assert type(peaks[1]) == int
+    assert type(peaks[2]) == int
+    assert type(peaks[3]) == int
+    
+    sampling_wavelengths = np.linspace(min_wavelength, max_wavelength, sample_frequency)
+    
+    curves = []
+    for peak in peaks:
+        
+        spectral_sensitivity = govardovskii_template(
+            sampling_wavelengths, 
+            peak, 
+            ommit_beta_band=ommit_beta_band
+            )
+        
+        curves.append(spectral_sensitivity)
+
+    return curves
 
 def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=None):
     # First, try to read the file without a header
