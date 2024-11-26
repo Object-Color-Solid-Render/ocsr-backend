@@ -108,7 +108,8 @@ def get_ocs_data():
         'wavelengths': to_list(wavelengths),
         's_response': to_list(curves[0]),
         'm_response': to_list(curves[1]),
-        'l_response': to_list(curves[2])
+        'l_response': to_list(curves[2]),
+        'q_response': to_list(curves[3])
     }
 
     return jsonify(response_data)
