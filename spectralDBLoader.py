@@ -15,11 +15,11 @@ def read_csv(file_path):
         reader = csv.DictReader(infile, delimiter=',')  # Tab-delimited CSV
         for row in reader:
             # Extract data in the specified format
-            common_name = row['Common Name']
-            scientific_name = row['Scientific Name']
-            peaks = process_lambda_values(row)
-            source = row['Source']
-            note = row['Note']
+            common_name = row['Common Name']            # Common Name (string)
+            scientific_name = row['Scientific Name']    # Scientific Name (string)
+            peaks = process_lambda_values(row)          # List of lambda_max values (int[4])
+            source = row['Source']                      # Source (string)    
+            note = row['Note']                          # Note (string)  
 
             # Append a tuple with the processed data to the list
             data.append((common_name, scientific_name, peaks, source, note))
