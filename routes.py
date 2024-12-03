@@ -9,6 +9,9 @@ from ocs_slice import get_y_slice
 from govardovskii import govardovskii_template
 from spectralDBLoader import read_csv
 
+from typing import List
+from dataclasses import dataclass
+
 teapot_routes = Blueprint('teapot_routes', __name__)
 ocs_routes = Blueprint('ocs_routes', __name__)
 file_routes = Blueprint('file_routes', __name__)
@@ -44,6 +47,77 @@ def upload_file():
     else:
         return jsonify({'error': 'File type not allowed'}), 400
 
+
+@dataclass
+class OCSContext4D:
+    """
+    Contexts for generating a single OCS geometry
+    """
+    min_sample_wavelength: int
+    max_sample_wavelength: int
+    sample_per_wavelength: int
+    peak_wavelengths: List[int] # 4 peak wavelengths
+    active_cones: List[bool] # 4 active cones
+    is_max_basis: bool
+    
+
+@dataclass
+class OCSGeometry4D:
+    """
+    Geometry of a single OCS
+    """
+    vertices: List[float]
+    indices: List[int]
+    colors: List[float]
+    normals: List[float]
+    wavelengths: List[int]
+    curves: List[List[float]] # l, m, s, q responses
+
+# generate OCS data for a single color solid
+def get_single_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
+    # derive min, max wavelengths and the sample resolution
+    assert len(ocs_ctx.peak_wavelengths) == 4
+    assert len(ocs_ctx.active_cones) == 4
+
+    print("===== Parameters =====")
+    print("Wavelength Bouunds: ", ocs_ctx.min_sample_wavelength, ocs_ctx.max_sample_wavelength)
+    print("Peak Wavelengths: ", ocs_ctx.peak_wavelengths)
+    print("Active Cones: ", ocs_ctx.active_cones)
+
+    wavelength_sample_resolution: int = ocs_ctx.sample_per_wavelength * (ocs_ctx.max_sample_wavelength - ocs_ctx.min_sample_wavelength + 1)
+
+    wavelengths: List[int] = np.linspace(ocs_ctx.min_sample_wavelength, ocs_ctx.max_sample_wavelength, num=wavelength_sample_resolution)
+
+    curves = []
+    for peak, is_active in zip(ocs_ctx.peak_wavelengths, ocs_ctx.active_cones):
+        if is_active:
+            curve = govardovskii_template(wavelengths=wavelengths,
+                                        lambda_max=peak,
+                                        A1_proportion=100,
+                                        omit_beta_band=True)
+        else:
+            curve = np.zeros(wavelength_sample_resolution) + 1e-6
+        curves.append(curve)
+
+    assert len(curves) == 4
+
+    vertices, indices, colors = generate_OCS2(curves, wavelengths, ocs_ctx.is_max_basis)
+    normals = calculate_normals(vertices, indices)
+    
+    assert len(vertices) == len(colors)
+
+
+    # generate OCS data for a single color solid
+    ret: OCSGeometry4D = OCSGeometry4D(
+            vertices=to_list(vertices),
+            indices=to_list(indices),
+            normals=to_list(normals),
+            colors=to_list(colors),
+            wavelengths=to_list(wavelengths),
+            curves=[to_list(curve) for curve in curves]
+        )
+
+    return ret
 
 @ocs_routes.route('/get_ocs_data', methods=['GET'])
 def get_ocs_data():
