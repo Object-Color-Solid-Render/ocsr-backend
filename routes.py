@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.utils import secure_filename
 from model_utils import load_obj, calculate_normals
-from ocs_generator import generate_OCS, generate_OCS2
+from ocs_generator import generate_OCS
 from shaders import get_vertex_shader, get_fragment_shader
 from ocs_slice import get_y_slice
 from govardovskii import govardovskii_template
@@ -166,7 +166,7 @@ def get_ocs_data():
             curve = np.zeros(wavelength_sample_resolution) + 1e-6 # add EPSILON
         curves.append(curve)
 
-    vertices, indices, colors = generate_OCS2(curves, wavelengths, is_max_basis)
+    vertices, indices, colors = generate_OCS(curves, wavelengths, is_max_basis)
     normals = calculate_normals(vertices, indices)
 
     if len(vertices) != len(colors):

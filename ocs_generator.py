@@ -1,18 +1,10 @@
+from tqdm import tqdm
+import numpy as np
+
 from chromalab.observer import Observer
 from chromalab.spectra import Spectra, Illuminant
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-import bisect
-import pandas as pd
-import os
-from tqdm import tqdm
 
 from govardovskii import govardovskii_template
-
-def get_idxs(collection, max_num_points):
-    return np.linspace(0, len(collection), endpoint=False, num=max_num_points).astype(int)
 
 def peaks_to_curves(
         peaks: list, 
@@ -114,18 +106,6 @@ def triangles_to_vertices_indices(triangles: np.ndarray):
     
     return vertices, indices
 
-from itertools import combinations
-from functools import reduce
-from tqdm import tqdm
-
-import numpy as np
-import glm
-import matplotlib.pyplot as plt
-
-from chromalab.observer import Observer, Cone, getHeringMatrix
-from chromalab.spectra import Spectra, convert_refs_to_spectras, Illuminant
-
-import time
 
 # code shamelessly from https://github.com/chromalab/chromalab/blob/main/chromalab/max_basis.py
 
@@ -142,7 +122,7 @@ class MaxBasis:
         self.step_size = self.observer.wavelengths[1] - self.observer.wavelengths[0]
         self.dim_sample_const = self.dim4SampleConst if self.dimension == 4 else self.dim3SampleConst
 
-        self.__findMaxCutpoints2()
+        self.__findMaxCutpoints()
         
     def __computeVolume(self, wavelengths):
         # wavelengths = [matrix.wavelengths[idx] for idx in indices]
@@ -151,7 +131,7 @@ class MaxBasis:
         vol = np.abs(np.linalg.det(cone_vals))
         return vol
 
-    def __findMaxCutpoints2(self, rng=None):
+    def __findMaxCutpoints(self, rng=None):
         if self.dimension == 2:
             X = np.arange(self.observer.wavelengths[0] + self.step_size,
                         self.observer.wavelengths[-1] - self.step_size,
@@ -241,7 +221,7 @@ class MaxBasis:
         transitions.sort()
         return transitions
 
-def generate_OCS2(curves: list, wavelengths: list, max_basis: bool):
+def generate_OCS(curves: list, wavelengths: list, max_basis: bool):
     
     assert len(curves) == 4
     assert len(wavelengths) == len(curves[0])
@@ -343,128 +323,3 @@ def generate_OCS2(curves: list, wavelengths: list, max_basis: bool):
         face_colors = np.append(face_colors, missing_colors, axis=0)  # Append along the correct axis
 
     return normalized_vertices.tolist(), indices.tolist(), face_colors.tolist()
-
-
-
-
-
-def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str, max_basis: bool):
-    
-    csv_file_path = os.path.join(os.getcwd(), "res/uploads/", response_file_name)
-    wavelengths, s_response, m_response, l_response = read_cone_response(csv_file_path, min_wavelength, max_wavelength)
-
-    print("Generate an OCS")
-    if wavelengths is None:
-        # Cone responses of a typical trichromat.
-        freq = 15
-        wavelengths = np.arange(min_wavelength, max_wavelength + 1, freq)
-        # wavelengths = np.arange(min_wavelength, max_wavelength + 1, 3)
-        standard_trichromat = Observer.trichromat(np.arange(min_wavelength, max_wavelength + 1, freq))
-        s_response, m_response, l_response = standard_trichromat.sensors[0].data, standard_trichromat.sensors[1].data, standard_trichromat.sensors[2].data 
-        
-        # Only grab max_num_points amount of data points
-        # if max_num_points:
-        #     wavelength_idxs = get_idxs(s_response, max_num_points)
-        #     wavelengths = wavelengths[wavelength_idxs]
-        #     s_response, m_response, l_response = s_response[wavelength_idxs], m_response[wavelength_idxs], l_response[wavelength_idxs]
-            
-    else:
-        # Update the indices to the wavelengths we care about
-        # start_idx = bisect.bisect_left(wavelengths, min_wavelength)
-        # end_idx = bisect.bisect_left(wavelengths, max_wavelength)
-        # s_response, m_response, l_response = s_response[start_idx:end_idx], m_response[start_idx:end_idx], l_response[start_idx:end_idx]
-        print(f"Loaded response file: {response_file_name}")
-        print(f"Wavelengths: {wavelengths}")
-        print(f"Wavelengths: {len(wavelengths)}")
-        print(f"S-Response: {len(s_response)}")
-        print(f"M-Response: {len(m_response)}")
-        print(f"L-Response: {len(l_response)}")
-
-    n = len(wavelengths)
-    illuminant = Illuminant.get("D65").interpolate_values(wavelengths)
-
-    # Each point has an indicator reflectance function where R = 1 at a single wavelength and 0 elsewhere.
-    # These points can be thought of as vectors which form a (linearly dependent) basis.
-    # The Minkowski sum of these vectors span the object color solid.
-    # Each point in the solid can be represented as some (non-unique) linear combination of these vectors.
-    # This represents equations (9), (10), (11), (12), (13).
-    lms_responses = np.vstack(( s_response, 
-                                m_response, 
-                                l_response)) * illuminant.data
-
-    points = np.copy(lms_responses).T
-
-    # As shown in Centore's paper, these vertices form the shape of the solid.
-    # This represents the matrix in (7).
-    vertices = np.zeros((n + 1, n, 3))
-    for i in range(1, n + 1):
-        for j in range(n):
-            vertices[i, j] = vertices[i - 1, j] + points[(i + j - 1) % n]
-
-    # This represents the diagram in (8)
-    faces = np.zeros((n * (n - 1), 4, 3))
-    face_colors = np.zeros((n * (n - 1), 3))
-    for i in tqdm(range(1, n)):
-        for j in range(n):
-            faces[((i - 1) * n) + j, 0] = vertices[i, j]
-            faces[((i - 1) * n) + j, 1] = vertices[i - 1, (j + 1) % n]
-            faces[((i - 1) * n) + j, 2] = vertices[i, (j + 1) % n]
-            faces[((i - 1) * n) + j, 3] = vertices[i + 1, j]
-            
-            # Calculate the reflectance on each face by using the reflectance of one of its vertices.
-            # Since each vertex can be thought of as a linear combination of the basis vectors, 
-            # the vertex's reflectance is the sum of reflectances of those vectors that made up the vertex.
-            reflectance_data = np.zeros(n)
-            for k in range(i):
-                reflectance_data[(j + k) % n] = 1
-            reflectance = Spectra(wavelengths=wavelengths, data=reflectance_data)
-            face_colors[(i - 1) * n + j] = reflectance.to_rgb(illuminant)    # Bottleneck. Takes about 3ms. 
-
-    if (max_basis):
-        # Uses ideas from Jessica's paper, on chapter 3.2 The Max Basis.
-        # We use the cutpoints that Jessica shows to be optimal for the trichromatic case.
-        cutpoint_1 = 487
-        cutpoint_2 = 573
-        index_1 = None
-        index_2 = None
-        for i, wavelength in enumerate(wavelengths):
-            if index_1 is None and wavelength > cutpoint_1:
-                index_1 = i
-            if index_2 is None and wavelength >= cutpoint_2:
-                index_2 = i
-                break
-
-        # We calculate the vectors p1, p2 and p3 as shown in the paper.
-        # We "project the partition into the cone response basis" by summing up all the lms_responses within each partition.
-        # Note that our earlier calculations for lms_responses includes the illuminant already.
-        p1 = np.sum(lms_responses[:, :index_1], axis=1).reshape((3, 1))
-        p2 = np.sum(lms_responses[:, index_1:index_2], axis=1).reshape((3, 1))
-        p3 = np.sum(lms_responses[:, index_2:], axis=1).reshape((3, 1))
-
-        # We then create a transformation matrix that maps p1 to (1, 0, 0), p2 to (0, 1, 0) and p3 to (1, 0, 0).
-        # p1, p2 and p3 correspond to the ideal R, G, B points on our object color solid, 
-        # and we are mapping them onto the R, G, B points on the RGB cube.
-        # We are essentially "stretching" our object color solid so that it approximates the RGB cube.
-        transformation_matrix = np.linalg.inv(np.hstack((p1, p2, p3)))
-        faces_transformed = np.matmul(faces, transformation_matrix.T)
-        faces = faces_transformed
-
-    tris = quads_to_triangles(faces)
-    vertices, indices = triangles_to_vertices_indices(tris)
-
-    # Normalize vertices to [0, 1] range
-    min_coords = np.min(vertices, axis=0)
-    max_coords = np.max(vertices, axis=0)
-    range_coords = max_coords - min_coords
-    # TODO: The bird color solid changes in shape when normalizing vs. not
-    normalized_vertices =  (vertices - min_coords) / range_coords
-
-    # Ensure the colors array has enough values to match the number of vertices
-    if len(face_colors) < len(vertices):
-        num_missing_colors = len(vertices) - len(face_colors)
-        missing_colors = np.array([[1.0, 1.0, 1.0]] * num_missing_colors)  # Create a NumPy array of white [R, G, B] for missing colors
-        
-        # Use np.append to concatenate the arrays
-        face_colors = np.append(face_colors, missing_colors, axis=0)  # Append along the correct axis
-
-    return normalized_vertices.tolist(), indices.tolist(), face_colors.tolist(), wavelengths.tolist(), s_response.tolist(), m_response.tolist(), l_response.tolist()
