@@ -1,3 +1,6 @@
+from typing import List
+from dataclasses import dataclass
+
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -6,6 +9,7 @@ from chromalab.observer import Observer
 from chromalab.spectra import Spectra, Illuminant
 
 from govardovskii import govardovskii_template
+from model_utils import load_obj, calculate_normals
 
 def peaks_to_curves(
         peaks: list, 
@@ -373,7 +377,97 @@ class ObjectColorSolidTrichromat:
 
         return ciergbs
 
+# turns np arrays to lists and lists to lists
+# TODO: need some type safety please instead of using this
+def to_list(l):
+    return l.tolist() if isinstance(l, np.ndarray) else l
 
+@dataclass
+class OCSContext4D:
+    """
+    Contexts for generating a single OCS geometry
+    """
+    min_sample_wavelength: int
+    max_sample_wavelength: int
+    sample_per_wavelength: float
+    peak_wavelengths: List[int]  # 4 peak wavelengths
+    active_cones: List[bool]  # 4 active cones
+    is_max_basis: bool
+
+@dataclass
+class OCSGeometry4D:
+    """
+    Geometry of a single OCS
+    """
+    vertices: List[float]
+    indices: List[int]
+    colors: List[float]
+    normals: List[float]
+    wavelengths: List[int]
+    curves: List[List[float]]  # l, m, s, q responses
+
+def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
+    """
+    Generate a single OCS geometry based on the given context
+    """
+    # derive min, max wavelengths and the sample resolution
+    assert len(ocs_ctx.peak_wavelengths) == 4
+    assert len(ocs_ctx.active_cones) == 4
+
+    print("===== Parameters =====")
+    print("Wavelength Bouunds: ", ocs_ctx.min_sample_wavelength,
+          ocs_ctx.max_sample_wavelength)
+    print("Peak Wavelengths: ", ocs_ctx.peak_wavelengths)
+    print("Active Cones: ", ocs_ctx.active_cones)
+
+    wavelength_sample_resolution: int = int(ocs_ctx.sample_per_wavelength *
+                                            (ocs_ctx.max_sample_wavelength -
+                                             ocs_ctx.min_sample_wavelength + 1))
+
+    # get list of only active peaks and sort
+    activePeaks = [
+        peak for peak in ocs_ctx.peak_wavelengths if ocs_ctx.active_cones[ocs_ctx.peak_wavelengths.index(peak)]]
+    activePeaks.sort()
+
+    wavelengths: list[int] = np.linspace(
+        ocs_ctx.min_sample_wavelength, ocs_ctx.max_sample_wavelength, num=wavelength_sample_resolution)  # type: ignore
+
+    # curves is [S, M, L, Q]
+    # cheap hack to allow us to use 3D OCS code for lower dimensions
+    # add curves for all active peaks,
+    # then for inactive peaks (code breaks when zero response function is passed in)
+    # add curves for the last active peak + epsilon which acts as a linearly dependant function
+    # and keep dimentions virutally the same
+    curves = [
+        govardovskii_template(
+            wavelengths=wavelengths,
+            lambda_max=activePeaks[i] if i < len(
+                activePeaks) else activePeaks[-1] + 1e-6,
+            A1_proportion=100,
+            omit_beta_band=True
+        )
+        for i in range(len(ocs_ctx.peak_wavelengths))
+    ]
+
+    assert len(curves) == 4
+
+    vertices, indices, colors = generate_OCS(
+        curves, wavelengths, ocs_ctx.is_max_basis)
+    normals = calculate_normals(vertices, indices)
+
+    assert len(vertices) == len(colors)
+
+    # generate OCS data for a single color solid
+    ret: OCSGeometry4D = OCSGeometry4D(
+        vertices=to_list(vertices),
+        indices=to_list(indices),
+        normals=to_list(normals),
+        colors=to_list(colors),
+        wavelengths=to_list(wavelengths),
+        curves=[to_list(curve) for curve in curves]
+    )
+
+    return ret
 
 def generate_OCS(curves: list, wavelengths: list, is_max_basis: bool):
     
