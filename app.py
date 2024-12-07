@@ -4,7 +4,7 @@ from routes import teapot_routes, ocs_routes, file_routes, db_routes
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "*"}})
     app.register_blueprint(teapot_routes)
     app.register_blueprint(ocs_routes)
     app.register_blueprint(file_routes)
@@ -13,4 +13,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(debug=True, port=5050)
