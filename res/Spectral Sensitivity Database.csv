@@ -1,14 +1,14 @@
-Common Name,Scientific Name,lambda_max1,lambda_max2,lambda_max3,lambda_max4,Source,Note
-Scallop,Pecten maximus,480,540,N/A,N/A,https://pubmed.ncbi.nlm.nih.gov/17799983/,
-Goldfish,Carassius auratus,356,447,537,623,https://www.sciencedirect.com/science/article/pii/S0042698997004112#:~:text=(A)%3A%20A%20cell%20maximally%20sensitive%20at%20537%20nm.,"tetra, but tri with white light? or smth"
-Clawed Toad,Xenopus laevis,610,630,N/A,N/A,https://journals.biologists.com/jeb/article/42/3/481/21136/The-Spectral-Sensitivity-of-the-Goldfish-and-the,they only see violet things
-Four-striped Grass Mouse,Rhabdomys pumilio,360,502,N/A,N/A,https://pmc.ncbi.nlm.nih.gov/articles/PMC7272338/,"biased against UV-A wavelengths because of lens, not cones"
-Velvet Worm ,Onychophora,480,N/A,N/A,N/A,https://pubmed.ncbi.nlm.nih.gov/25617459/,"""exhibits photonegative response to 360-530nm light"""
-Macaque,Macaca,430,530,561,N/A,https://www.cambridge.org/core/journals/visual-neuroscience/article/spectral-sensitivity-of-primate-photoreceptors/3C54998B7E9FE7C3CC1A6A8C5B060CB0,a model for human color vision
-Crab-eating Macaque,Macaca fascicularis,430,530,561,N/A,https://physoc.onlinelibrary.wiley.com/doi/abs/10.1113/jphysiol.1987.sp016691,
-Pig,Sus scrofa domesticus,439,556,N/A,N/A,https://www.cambridge.org/core/journals/visual-neuroscience/article/spectral-sensitivity-of-cones-in-an-ungulate/1BC07A10BDF59B9D630C7A73B5837CAB,
-Honey Bee,Apis Mellifera,350,440,540,N/A,https://www.researchgate.net/profile/Randolf-Menzel/publication/226998263_Colour_receptors_in_the_bee_eye_Morphology_and_spectral_sensitivity/links/53ed150f0cf23733e8063b5a/Colour-receptors-in-the-bee-eye-Morphology-and-spectral-sensitivity.pdf,
-Haplosclerid Sponge Larvae,Reniera sp.,440,600,N/A,N/A,https://link.springer.com/article/10.1007/S00359-002-0293-Y,very small response at 600 (like 1/10th that of 440)
-Pigeon,Columba Livia,460,515,567,N/A,https://www.sciencedirect.com/science/article/pii/004269897790147X,
-Guinea Pig,Cavia porcellus,429,529,N/A,N/A,https://psycnet.apa.org/record/1995-08507-001,
-Mouse,Mus musculus,360,510,N/A,N/A,https://www.sciencedirect.com/science/article/pii/S0042698904000537,
+Common Name,Scientific Name,Template,Chromophores,lambda_max1,lambda_max2,lambda_max3,lambda_max4,Source,Note,,,
+Scallop,Pecten maximus,Govardovskii,A1,480,540,N/A,N/A,https://pubmed.ncbi.nlm.nih.gov/17799983/,,,,
+Goldfish,Carassius auratus,Govardovskii,"A1,A2",356,447,537,623,https://www.sciencedirect.com/science/article/pii/S0042698997004112#:~:text=(A)%3A%20A%20cell%20maximally%20sensitive%20at%20537%20nm.,"tetra, but tri with white light? or smth",,,
+Clawed Toad,Xenopus laevis,Govardovskii,"A1,A2",610,630,N/A,N/A,https://journals.biologists.com/jeb/article/42/3/481/21136/The-Spectral-Sensitivity-of-the-Goldfish-and-the,they only see violet things,,,
+Four-striped Grass Mouse,Rhabdomys pumilio,Lamb,A1,360,502,N/A,N/A,https://pmc.ncbi.nlm.nih.gov/articles/PMC7272338/,"biased against UV-A wavelengths because of lens, not cones",,,
+Velvet Worm ,Onychophora,Govardovskii,A1,480,N/A,N/A,N/A,https://pubmed.ncbi.nlm.nih.gov/25617459/,"""exhibits photonegative response to 360-530nm light""",,,
+Macaque,Macaca,Lamb,A1,430,530,561,N/A,https://www.cambridge.org/core/journals/visual-neuroscience/article/spectral-sensitivity-of-primate-photoreceptors/3C54998B7E9FE7C3CC1A6A8C5B060CB0,a model for human color vision,,,
+Crab-eating Macaque,Macaca fascicularis,Lamb,A1,430,530,561,N/A,https://physoc.onlinelibrary.wiley.com/doi/abs/10.1113/jphysiol.1987.sp016691,,,,
+Pig,Sus scrofa domesticus,Lamb,A1,439,556,N/A,N/A,https://www.cambridge.org/core/journals/visual-neuroscience/article/spectral-sensitivity-of-cones-in-an-ungulate/1BC07A10BDF59B9D630C7A73B5837CAB,,,,
+Honey Bee,Apis Mellifera,Govardovskii,A1,350,440,540,N/A,https://www.researchgate.net/profile/Randolf-Menzel/publication/226998263_Colour_receptors_in_the_bee_eye_Morphology_and_spectral_sensitivity/links/53ed150f0cf23733e8063b5a/Colour-receptors-in-the-bee-eye-Morphology-and-spectral-sensitivity.pdf,,,,
+Haplosclerid Sponge Larvae,Reniera sp.,Govardovskii,A1,440,600,N/A,N/A,https://link.springer.com/article/10.1007/S00359-002-0293-Y,very small response at 600 (like 1/10th that of 440),,,
+Pigeon,Columba Livia,Govardovskii,A1,460,515,567,N/A,https://www.sciencedirect.com/science/article/pii/004269897790147X,,,,
+Guinea Pig,Cavia porcellus,Lamb,A1,429,529,N/A,N/A,https://psycnet.apa.org/record/1995-08507-001,,,,
+Mouse,Mus musculus,Lamb,A1,360,510,N/A,N/A,https://www.sciencedirect.com/science/article/pii/S0042698904000537,,,,

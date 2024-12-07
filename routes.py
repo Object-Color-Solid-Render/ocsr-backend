@@ -127,9 +127,9 @@ def get_ocs_data():
     max_wavelength = int(request.args.get('maxWavelength', 700))
 
     # default values should yield garbage; we always want request to work
-    wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 5))
+    #wavelength_sample_resolution = int(request.args.get('wavelengthSampleResolution', 5))
     is_max_basis = request.args.get('isMaxBasis', False) == "true"
-    omit_beta_band = request.args.get('omitBetaBand', True) == "true"
+    #omit_beta_band = request.args.get('omitBetaBand', True) == "true"
     peakWavelength1 = int(request.args.get('peakWavelength1', 500))
     peakWavelength2 = int(request.args.get('peakWavelength2', 510))
     peakWavelength3 = int(request.args.get('peakWavelength3', 520))
@@ -138,6 +138,10 @@ def get_ocs_data():
     isCone2Active = request.args.get('isCone2Active', False) == "true"
     isCone3Active = request.args.get('isCone3Active', False) == "true"
     isCone4Active = request.args.get('isCone4Active', False) == "true"
+
+    # we dont need to take input for these anymore
+    omit_beta_band = True   # always omit beta band
+    wavelength_sample_resolution = 40   # code is fast enough where it can do 50 in an instant and 30 is more than enough
 
     print("===== Parameters =====")
     print("Wavelength Bouunds: ", min_wavelength, max_wavelength)
@@ -151,20 +155,27 @@ def get_ocs_data():
     peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
     activeCones = [isCone1Active, isCone2Active, isCone3Active, isCone4Active]
 
+    # get list of only active peaks and sort
+    activePeaks = [peak for peak in peaks if activeCones[peaks.index(peak)]]
+    activePeaks.sort()
+
     wavelengths = np.linspace(min_wavelength, max_wavelength, num=wavelength_sample_resolution)
 
     # curves is [S, M, L, Q]
-    curves = []
-    for peak, is_active in zip(peaks, activeCones):
-        curve = []
-        if is_active:
-            curve = govardovskii_template(wavelengths=wavelengths,
-                                        lambda_max=peak,
-                                        A1_proportion=100,
-                                        omit_beta_band=omit_beta_band)
-        else:
-            curve = np.zeros(wavelength_sample_resolution) + 1e-6 # add EPSILON
-        curves.append(curve)
+    # cheap hack to allow us to use 3D OCS code for lower dimensions
+    # add curves for all active peaks, 
+    # then for inactive peaks (code breaks when zero response function is passed in)
+    # add curves for the last active peak + epsilon which acts as a linearly dependant function
+    # and keep dimentions virutally the same
+    curves = [
+    govardovskii_template(
+        wavelengths=wavelengths,
+        lambda_max=activePeaks[i] if i < len(activePeaks) else activePeaks[-1] + 1e-6,
+        A1_proportion=100,
+        omit_beta_band=omit_beta_band
+    )
+    for i in range(len(peaks))
+    ]
 
     vertices, indices, colors = generate_OCS(curves, wavelengths, is_max_basis)
     normals = calculate_normals(vertices, indices)
