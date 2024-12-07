@@ -12,34 +12,33 @@ from govardovskii import govardovskii_template
 from model_utils import load_obj, calculate_normals
 
 def peaks_to_curves(
-        peaks: list, 
-        sample_frequency: int, 
-        min_wavelength: int, 
-        max_wavelength: int, 
-        ommit_beta_band: bool
+        cone_peaks: List[float], 
+        active_cones: List[bool], 
+        sampling_wavelengths: List[float],
+        omit_beta_band: bool = True
         ):
-    """Convert a list of peaks into a list of curves, each with a start and end wavelength"""
+    """Convert a list of peaks into a list of curves"""
     
-    assert len(peaks) == 4
-    assert sample_frequency > 0
-    assert min_wavelength < max_wavelength
-    assert min_wavelength > 0
-    assert type(peaks[0]) == int
-    assert type(peaks[1]) == int
-    assert type(peaks[2]) == int
-    assert type(peaks[3]) == int
-    
-    sampling_wavelengths = np.linspace(min_wavelength, max_wavelength, sample_frequency)
-    
+    assert len(cone_peaks) == 4
+    assert len(active_cones) == 4
+    assert len(sampling_wavelengths) > 0
+    assert all(isinstance(x, (int, float)) for x in cone_peaks)           # every element is a number
+    assert all(isinstance(x, bool) for x in active_cones)                 # every element is a boolean
+    assert all(isinstance(x, (int, float)) for x in sampling_wavelengths) # every element is a number
+
+    # get list of only active peaks and sort
+    activePeaks = [
+        peak for peak in cone_peaks if active_cones[cone_peaks.index(peak)]]
+    activePeaks.sort()
+
     curves = []
-    for peak in peaks:
-        
+    for peak in activePeaks:
         spectral_sensitivity = govardovskii_template(
             sampling_wavelengths, 
             peak, 
-            ommit_beta_band=ommit_beta_band
+            A1_proportion=100,
+            omit_beta_band=omit_beta_band
             )
-        
         curves.append(spectral_sensitivity)
 
     return curves
@@ -251,10 +250,15 @@ class ObjectColorSolidTrichromat:
                                         )) # shape (3, n)
         self.numreceptors = self.coneresponses.shape[0]
         self.vertices = self.computeVertexBuffer() # shape (n + 1, n, 3) as described in paul centore paper
+        
+        self.max_basis_vertices = self.vertices
         self.is_max_basis = is_max_basis
         if is_max_basis:
-            self.applyMaxBasisTransformation()
+            max_basis_transformation = self.computeMaxBasisTransformation()
+            self.max_basis_vertices = np.matmul(self.vertices, max_basis_transformation.T)
+        
         self.faces, self.facecolors = self.computeFacesAndColorsBuffer() # faces: shape (n * (n - 1), 4, 3), face_colors: shape((n * (n - 1), 3))
+        
 
     def computeVertexBuffer(self):
         n = len(self.wavelengths)
@@ -269,7 +273,7 @@ class ObjectColorSolidTrichromat:
         vertices[:,:,2] = vertices[:,:,2] / np.max(vertices[:,:,2])
         return vertices
 
-    def applyMaxBasisTransformation(self):
+    def computeMaxBasisTransformation(self):
         max_basis = MaxBasis(self.observer)
         cutpoints = max_basis.get_cutpoints()
         cutpoint_1 = cutpoints[0]
@@ -297,8 +301,7 @@ class ObjectColorSolidTrichromat:
         # and we are mapping them onto the R, G, B points on the RGB cube.
         # We are essentially "stretching" our object color solid so that it approximates the RGB cube.
         transformation_matrix = np.linalg.inv(np.hstack((p1, p2, p3)))
-        vertices_transformed = np.matmul(self.vertices, transformation_matrix.T)
-        self.vertices = vertices_transformed
+        return transformation_matrix
 
     def getCutpointIndices(self, cutpoint_1, cutpoint_2):
         index_1 = next(i for i, wl in enumerate(self.wavelengths) if wl > cutpoint_1)
@@ -311,10 +314,10 @@ class ObjectColorSolidTrichromat:
         face_colors = np.zeros((n * (n - 1), 3))
         for i in tqdm(range(1, n)):
             for j in range(n):
-                faces[((i - 1) * n) + j, 0] = self.vertices[i, j]
-                faces[((i - 1) * n) + j, 1] = self.vertices[i - 1, (j + 1) % n]
-                faces[((i - 1) * n) + j, 2] = self.vertices[i, (j + 1) % n]
-                faces[((i - 1) * n) + j, 3] = self.vertices[i + 1, j]
+                faces[((i - 1) * n) + j, 0] = self.max_basis_vertices[i, j]
+                faces[((i - 1) * n) + j, 1] = self.max_basis_vertices[i - 1, (j + 1) % n]
+                faces[((i - 1) * n) + j, 2] = self.max_basis_vertices[i, (j + 1) % n]
+                faces[((i - 1) * n) + j, 3] = self.max_basis_vertices[i + 1, j]
                 
                 reflectance = np.zeros(n)
                 for k in range(i):
@@ -415,8 +418,7 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
     assert len(ocs_ctx.active_cones) == 4
 
     print("===== Parameters =====")
-    print("Wavelength Bouunds: ", ocs_ctx.min_sample_wavelength,
-          ocs_ctx.max_sample_wavelength)
+    print("Wavelength Bouunds: ", ocs_ctx.min_sample_wavelength, ocs_ctx.max_sample_wavelength)
     print("Peak Wavelengths: ", ocs_ctx.peak_wavelengths)
     print("Active Cones: ", ocs_ctx.active_cones)
 
@@ -424,38 +426,31 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
                                             (ocs_ctx.max_sample_wavelength -
                                              ocs_ctx.min_sample_wavelength + 1))
 
-    # get list of only active peaks and sort
-    activePeaks = [
-        peak for peak in ocs_ctx.peak_wavelengths if ocs_ctx.active_cones[ocs_ctx.peak_wavelengths.index(peak)]]
-    activePeaks.sort()
-
     wavelengths: list[int] = np.linspace(
-        ocs_ctx.min_sample_wavelength, ocs_ctx.max_sample_wavelength, num=wavelength_sample_resolution)  # type: ignore
+        ocs_ctx.min_sample_wavelength, 
+        ocs_ctx.max_sample_wavelength, 
+        num=wavelength_sample_resolution)  # type: ignore
 
-    # curves is [S, M, L, Q]
-    # cheap hack to allow us to use 3D OCS code for lower dimensions
-    # add curves for all active peaks,
-    # then for inactive peaks (code breaks when zero response function is passed in)
-    # add curves for the last active peak + epsilon which acts as a linearly dependant function
-    # and keep dimentions virutally the same
-    curves = [
-        govardovskii_template(
-            wavelengths=wavelengths,
-            lambda_max=activePeaks[i] if i < len(
-                activePeaks) else activePeaks[-1] + 1e-6,
-            A1_proportion=100,
-            omit_beta_band=True
-        )
-        for i in range(len(ocs_ctx.peak_wavelengths))
-    ]
+    curves = peaks_to_curves(ocs_ctx.peak_wavelengths, ocs_ctx.active_cones, wavelengths)
 
-    assert len(curves) == 4
+    if len(curves) == 4:
+        print("NOT IMPLEMENTED")
+        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
+        #vertices, indices, colors = generate_4D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
+    elif len(curves) == 3:
+        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
+    elif len(curves) == 2:
+        print("NOT IMPLEMENTED")
+        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
+        #vertices, indices, colors = generate_2D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
 
-    vertices, indices, colors = generate_OCS(
-        curves, wavelengths, ocs_ctx.is_max_basis)
     normals = calculate_normals(vertices, indices)
 
     assert len(vertices) == len(colors)
+
+    # now that we've generated the OCS, pad out the number of curves to 4
+    for i in range(len(curves), 4):
+        curves.append(np.zeros_like(curves[0]))
 
     # generate OCS data for a single color solid
     ret: OCSGeometry4D = OCSGeometry4D(
@@ -469,16 +464,22 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
 
     return ret
 
-def generate_OCS(curves: list, wavelengths: list, is_max_basis: bool):
-    
-    assert len(curves) == 4
+def generate_2D_OCS(curves: List[List[float]], wavelengths: List[float], is_max_basis: bool):
+    assert len(curves) == 2
     assert len(wavelengths) == len(curves[0])
 
-    s_response, m_response, l_response, _ = curves
+    print("NOT IMPLEMENTED")
 
-    s1 = Spectra(data=s_response, wavelengths=wavelengths)
-    s2 = Spectra(data=m_response, wavelengths=wavelengths)
-    s3 = Spectra(data=l_response, wavelengths=wavelengths)
+def generate_3D_OCS(curves: List[List[float]], wavelengths: List[float], is_max_basis: bool):
+    
+    assert len(curves) == 3
+    assert len(wavelengths) == len(curves[0])
+
+    S, M, L = curves
+
+    s1 = Spectra(data=S, wavelengths=wavelengths)
+    s2 = Spectra(data=M, wavelengths=wavelengths)
+    s3 = Spectra(data=L, wavelengths=wavelengths)
     observer = Observer([s1, s2, s3])
 
     illuminant = Illuminant.get("D65").interpolate_values(wavelengths)
@@ -500,13 +501,28 @@ def generate_OCS(curves: list, wavelengths: list, is_max_basis: bool):
     if len(face_colors) < len(vertices):
         num_missing_colors = len(vertices) - len(face_colors)
         missing_colors = np.array([[1.0, 1.0, 1.0]] * num_missing_colors)  # Create a NumPy array of white [R, G, B] for missing colors
-        
-        # Use np.append to concatenate the arrays
         face_colors = np.append(face_colors, missing_colors, axis=0)  # Append along the correct axis
 
     return normalized_vertices.tolist(), indices.tolist(), face_colors.tolist()
 
 
+def generate_4D_OCS(curves: List[List[float]], wavelengths: List[float], is_max_basis: bool):
+
+    assert len(curves) == 4
+    assert len(wavelengths) == len(curves[0])
+
+    S, M, L, Q = curves
+
+    QMS = [Q, M, S] # no L
+    QLS = [Q, L, S] # no M
+    QLM = [Q, L, M] # no S
+
+    print("NOT IMPLEMENTED")
+
+    # lol
+    #return generate_3D_OCS(QMS, wavelengths, is_max_basis), 
+    #        generate_3D_OCS(QLS, wavelengths, is_max_basis), 
+    #        generate_3D_OCS(QLM, wavelengths, is_max_basis)
 
 def generate_OCS_old(curves: list, wavelengths: list, max_basis: bool):
     

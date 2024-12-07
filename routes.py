@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.utils import secure_filename
 from model_utils import load_obj, calculate_normals
-from ocs_generator import generate_OCS, OCSContext4D, OCSGeometry4D, get_4d_ocs_geometry
+from ocs_generator import OCSContext4D, OCSGeometry4D, get_4d_ocs_geometry
 from shaders import get_vertex_shader, get_fragment_shader
 from ocs_slice import get_y_slice
 from govardovskii import govardovskii_template
@@ -76,7 +76,7 @@ def get_ocs_data():
 
     # how many samples per nm wavelength to take?
     # FIXME: add frontend customization
-    SAMPLES_PER_NM:float = 0.1
+    SAMPLES_PER_NM:float = 1.0 / 10 
 
     peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
     activeCones = [isCone1Active, isCone2Active, isCone3Active, isCone4Active]
