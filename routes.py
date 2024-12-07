@@ -82,11 +82,12 @@ def compute_ocs_slice():
     print("GENERATING SLICE!")
     vertices, colors, y = request.args.get('vertices', []), request.args.get('colors', []), float(request.args.get('y', 0))
     num_wavelengths = 0 # TODO: FIX THIS
-    intersection_vertices, intersection_colors = get_y_slice(vertices, colors, num_wavelengths, y) 
+    intersection_vertices, intersection_colors, indices = get_y_slice(vertices, colors, num_wavelengths, y) 
     return jsonify(
         {
             'vertices': intersection_vertices,
             'colors': intersection_colors,
+            'indices': indices,
             'vertexShader': get_vertex_shader(),
             'fragmentShader': get_fragment_shader()
         }

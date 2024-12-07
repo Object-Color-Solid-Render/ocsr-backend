@@ -9,12 +9,26 @@ import pandas as pd
 import os
 from tqdm import tqdm
 
+### DEFINE GLOBAL STATE:
+### -------------------
+edges = None
+edges_xyz = None
+
+class ObjectColorSolid:
+    def __init__(self, wavelengths, illuminant, transformation, edges, vertices):
+        self.wavelengths = wavelengths
+        self.illuminant = illuminant
+        self.transformation = transformation
+        self.edges = edges
+        self.vertices = vertices
+    
+
+   
 def get_idxs(collection, max_num_points):
     return np.linspace(0, len(collection), endpoint=False, num=max_num_points).astype(int)
 
 def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=None):
     # First, try to read the file without a header
-
     df = None
     try:
         df = pd.read_csv(csv_file_path, header=None)
@@ -92,6 +106,7 @@ def quads_to_triangles(quads: np.ndarray) -> np.ndarray:
     
     return triangles
 
+
 def triangles_to_vertices_indices(triangles: np.ndarray):
     """
     Convert a list of triangles into a list of unique vertices and their indices.
@@ -127,9 +142,30 @@ def triangles_to_vertices_indices(triangles: np.ndarray):
     
     # Convert the list of vertices and indices to numpy arrays
     vertices = np.array(vertices)
+    print(f"vertices: {vertices.shape}")
     indices = np.array(indices)
     
     return vertices, indices
+
+def generate_edges(n, vertices):
+    # Builds up the set of edges from the diagram in (8).
+    # There are 2 * (n ** 2) edges in total where n is the number of generating vectors.
+    global edges
+    edges = np.zeros((2 * (n ** 2), 2, 3))
+    index = 0
+    for j in range(n):
+        # Vertical edges.
+        for i in range(n):
+            edges[index][0] = vertices[i][j]
+            edges[index][1] = vertices[i + 1][j]
+            index += 1
+            
+        # Diagonal edges.
+        for i in range(1, n + 1):
+            edges[index][0] = vertices[i][j]
+            edges[index][1] = vertices[i - 1][(j + 1) % n]
+            index += 1
+    
 
 def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str, max_basis: bool):
     
@@ -231,6 +267,8 @@ def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: s
         transformation_matrix = np.linalg.inv(np.hstack((p1, p2, p3)))
         faces_transformed = np.matmul(faces, transformation_matrix.T)
         faces = faces_transformed
+
+    generate_edges(n, vertices, vertices_xyz)
 
     tris = quads_to_triangles(faces)
     vertices, indices = triangles_to_vertices_indices(tris)
