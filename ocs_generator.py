@@ -413,6 +413,7 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
     """
     Generate a single OCS geometry based on the given context
     """
+    print("==== Generating 4D OCS Geometry ====")
     # derive min, max wavelengths and the sample resolution
     assert len(ocs_ctx.peak_wavelengths) == 4
     assert len(ocs_ctx.active_cones) == 4
@@ -425,6 +426,8 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
     wavelength_sample_resolution: int = int(ocs_ctx.sample_per_wavelength *
                                             (ocs_ctx.max_sample_wavelength -
                                              ocs_ctx.min_sample_wavelength + 1))
+
+    print("sample per wavelength: ", ocs_ctx.sample_per_wavelength)
 
     wavelengths: list[int] = np.linspace(
         ocs_ctx.min_sample_wavelength, 

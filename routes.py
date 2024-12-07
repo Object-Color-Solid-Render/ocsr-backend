@@ -50,56 +50,65 @@ def upload_file():
 @ocs_routes.route('/get_ocs_data', methods=['GET'])
 def get_ocs_data():
     """
-    Generate object color solid geometry, colors, normals, and return shaders
-
+    Generate object color solid geometries for multiple entries.
     """
-    
-    # deprecated
-    min_wavelength = int(request.args.get('minWavelength', 390))
-    max_wavelength = int(request.args.get('maxWavelength', 700))
 
-    # FIXME: algo to calculate bounds for min and maxes
-    min_wavelength = 390
-    max_wavelength = 700
+    entries = []
+    args = request.args
 
-    #FIXME: frontend should input a list of ocs datas
-    # default values should yield garbage; we always want request to work
-    is_max_basis = request.args.get('isMaxBasis', False) == "true"
-    peakWavelength1 = int(request.args.get('peakWavelength1', 500))
-    peakWavelength2 = int(request.args.get('peakWavelength2', 510))
-    peakWavelength3 = int(request.args.get('peakWavelength3', 520))
-    peakWavelength4 = int(request.args.get('peakWavelength4', 530))   # not used currently
-    isCone1Active = request.args.get('isCone1Active', False) == "true"
-    isCone2Active = request.args.get('isCone2Active', False) == "true"
-    isCone3Active = request.args.get('isCone3Active', False) == "true"
-    isCone4Active = request.args.get('isCone4Active', False) == "true"
+    # Parse entries from request arguments
+    index = 0
+    while f'entries[{index}][minWavelength]' in args:
+        entry = {
+            'min_wavelength': int(args.get(f'entries[{index}][minWavelength]', 390)),
+            'max_wavelength': int(args.get(f'entries[{index}][maxWavelength]', 700)),
+            'omitBetaBand': args.get(f'entries[{index}][omitBetaBand]', 'False') == 'true',
+            'isMaxBasis': args.get(f'entries[{index}][isMaxBasis]', 'False') == 'true',
+            'wavelengthSampleResolution': float(args.get(f'entries[{index}][wavelengthSampleResolution]', 1.0)),
+            'peaks': [
+                int(args.get(f'entries[{index}][peakWavelength1]', 500)),
+                int(args.get(f'entries[{index}][peakWavelength2]', 510)),
+                int(args.get(f'entries[{index}][peakWavelength3]', 520)),
+                int(args.get(f'entries[{index}][peakWavelength4]', 530)),
+            ],
+            'activeCones': [
+                args.get(f'entries[{index}][isCone1Active]', 'False') == 'true',
+                args.get(f'entries[{index}][isCone2Active]', 'False') == 'true',
+                args.get(f'entries[{index}][isCone3Active]', 'False') == 'true',
+                args.get(f'entries[{index}][isCone4Active]', 'False') == 'true',
+            ],
+        }
+        entries.append(entry)
+        index += 1
 
-    # how many samples per nm wavelength to take?
-    # FIXME: add frontend customization
-    SAMPLES_PER_NM:float = 1.0 / 10 
+    response_data = []
+    for entry in entries:
+        generate_context = OCSContext4D(
+            entry['min_wavelength'],
+            entry['max_wavelength'],
+            0.1,
+            # entry['wavelengthSampleResolution'],
+            entry['peaks'],
+            entry['activeCones'],
+            entry['isMaxBasis']
+        )
 
-    peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
-    activeCones = [isCone1Active, isCone2Active, isCone3Active, isCone4Active]
+        geometry = get_4d_ocs_geometry(generate_context)
 
-    generate_context: OCSContext4D = OCSContext4D(min_wavelength, max_wavelength, SAMPLES_PER_NM, peaks, activeCones, is_max_basis)
-
-    geometry: OCSGeometry4D = get_4d_ocs_geometry(generate_context)
-
-    
-    # Convert all numpy arrays to lists
-    response_data = {
-        'vertices': to_list(geometry.vertices),
-        'indices': to_list(geometry.indices),
-        'normals': to_list(geometry.normals),
-        'colors': to_list(geometry.colors),
-        'vertexShader': get_vertex_shader(),
-        'fragmentShader': get_fragment_shader(),
-        'wavelengths': to_list(geometry.wavelengths),
-        's_response': to_list(geometry.curves[0]),
-        'm_response': to_list(geometry.curves[1]),
-        'l_response': to_list(geometry.curves[2]),
-        'q_response': to_list(geometry.curves[3])
-    }
+        data = {
+            'vertices': to_list(geometry.vertices),
+            'indices': to_list(geometry.indices),
+            'normals': to_list(geometry.normals),
+            'colors': to_list(geometry.colors),
+            'vertexShader': get_vertex_shader(),
+            'fragmentShader': get_fragment_shader(),
+            'wavelengths': to_list(geometry.wavelengths),
+            's_response': to_list(geometry.curves[0]),
+            'm_response': to_list(geometry.curves[1]),
+            'l_response': to_list(geometry.curves[2]),
+            'q_response': to_list(geometry.curves[3]),
+        }
+        response_data.append(data)
 
     return jsonify(response_data)
 
@@ -139,7 +148,7 @@ def get_spectral_db():
         'data': data
     })
 
-@teapot_routes.route('/get_teapot_data', methods=['GET'])
+@teapot_routes.route('/get_teapot_data', methods=['GET'])  # Corrected syntax
 def get_teapot_data():
     """Fetch teapot 3D model data, calculate normals, and return shaders"""
     vertices, indices = load_obj('res/models/teapot.obj')
@@ -154,4 +163,4 @@ def get_teapot_data():
         'vertexShader': get_vertex_shader(),
         'fragmentShader': get_fragment_shader()
     })
-    
+
