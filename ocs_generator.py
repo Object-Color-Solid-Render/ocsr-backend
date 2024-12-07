@@ -47,58 +47,6 @@ def peaks_to_curves(
 
     return curves
 
-def read_cone_response(csv_file_path, min_wavelength, max_wavelength, max_points=None):
-    # First, try to read the file without a header
-
-    df = None
-    try:
-        df = pd.read_csv(csv_file_path, header=None)
-    except FileNotFoundError:
-        print("Cone response file not found!")
-        return None, None, None, None
-    except:
-        print("Cone response file not found!")
-        return None, None, None, None
-    
-    # Check if the first value in the file is numeric to determine if there's a header
-    try:
-        float(df.iloc[0, 0])  # Try converting the first value to a float
-        has_header = False     # If successful, there's no header
-    except ValueError:
-        has_header = True      # If it raises ValueError, there is a header
-    
-    # If there is a header, reload the CSV with the header
-    if has_header:
-        df = pd.read_csv(csv_file_path)
-    
-    # Check if we have 3 or 4 cones based on the number of columns
-    if len(df.columns) == 4:
-        df.columns = ['Wavelength', 'S-Response', 'M-Response', 'L-Response']
-    elif len(df.columns) == 5:
-        df.columns = ['Wavelength', 'S-Response', 'Q-Response', 'M-Response', 'L-Response']
-    
-    df = df[(df['Wavelength'] >= min_wavelength) & (df['Wavelength'] <= max_wavelength)]
-
-    # Enforce a maximum number of datapoints if specified
-    # if max_num_points:
-        # wavelength_idxs = get_idxs(collection=df, max_num_points=max_num_points)  # decimal values are possible, so make it int
-        # df = df.iloc[wavelength_idxs, :]
-
-    # Check the step size
-    wavelength_step = df['Wavelength'].iloc[1] - df['Wavelength'].iloc[0]
-    
-    if wavelength_step < 10:
-        # Filter rows where the wavelength is a multiple of 10
-        df = df[df['Wavelength'] % 10 == 0]
-
-    # Extract the relevant columns as arrays
-    wavelengths = df['Wavelength'].to_numpy()
-    s_response = df['S-Response'].to_numpy()
-    m_response = df['M-Response'].to_numpy()
-    l_response = df['L-Response'].to_numpy()
-    
-    return wavelengths, s_response, m_response, l_response
-
 def quads_to_triangles(quads: np.ndarray) -> np.ndarray:
     """
     Convert an array of quads (n, 4, 3) to an array of triangles (2n, 3, 3).
@@ -166,7 +114,132 @@ def triangles_to_vertices_indices(triangles: np.ndarray):
     
     return vertices, indices
 
+from itertools import combinations
+from functools import reduce
+from tqdm import tqdm
 
+import numpy as np
+import glm
+import matplotlib.pyplot as plt
+
+from chromalab.observer import Observer, Cone, getHeringMatrix
+from chromalab.spectra import Spectra, convert_refs_to_spectras, Illuminant
+
+import time
+
+# code shamelessly from https://github.com/chromalab/chromalab/blob/main/chromalab/max_basis.py
+
+class MaxBasis:
+    dim4SampleConst = 10
+    dim3SampleConst = 2
+    
+    def __init__(self, observer, verbose=False) -> None:
+        self.verbose = verbose
+        self.observer = observer
+        self.wavelengths = observer.wavelengths
+        self.matrix = observer.get_normalized_sensor_matrix()
+        self.dimension = observer.dimension
+        self.step_size = self.observer.wavelengths[1] - self.observer.wavelengths[0]
+        self.dim_sample_const = self.dim4SampleConst if self.dimension == 4 else self.dim3SampleConst
+
+        self.__findMaxCutpoints2()
+        
+    def __computeVolume(self, wavelengths):
+        # wavelengths = [matrix.wavelengths[idx] for idx in indices]
+        transitions = self.getCutpointTransitions(wavelengths)
+        cone_vals = np.array([np.dot(self.matrix, Spectra.from_transitions(x, 1 if i == 0 else 0, self.wavelengths).data) for i, x in enumerate(transitions)])
+        vol = np.abs(np.linalg.det(cone_vals))
+        return vol
+
+    def __findMaxCutpoints2(self, rng=None):
+        if self.dimension == 2:
+            X = np.arange(self.observer.wavelengths[0] + self.step_size,
+                        self.observer.wavelengths[-1] - self.step_size,
+                        self.step_size)
+            
+            # Compute volumes in a vectorized manner
+            Zidx = np.array([self.__computeVolume([wavelength]) for wavelength in tqdm(X, disable=not self.verbose)])
+            
+            maxvol = np.max(Zidx)
+            idx = np.argmax(Zidx)
+            self.cutpoints = [X[idx], Zidx[idx]]
+            self.listvol = [X, Zidx]
+            return self.cutpoints
+
+        elif self.dimension == 3:
+            if not rng:
+                X = np.arange(self.observer.wavelengths[0] + self.step_size,
+                            self.observer.wavelengths[-1] - self.step_size,
+                            self.step_size)
+                Y = X.copy()  # Same range as X
+            else:
+                X = np.arange(rng[0][0], rng[0][1], self.step_size)
+                Y = np.arange(rng[1][0], rng[1][1], self.step_size)
+
+            # Precompute meshgrid indices
+            Xidx, Yidx = np.meshgrid(X, Y, indexing='ij')
+
+            # Parallel computation of Zidx
+            def compute_volume(i, j):
+                if i <= j:
+                    wavelengths = sorted([X[i], Y[j]])
+                    return self.__computeVolume(wavelengths)
+                return -np.inf
+
+            Zidx = np.array([[compute_volume(i, j) for j in range(len(Y))] for i in tqdm(range(len(X)), disable=not self.verbose)])
+            
+            maxvol = np.max(Zidx)
+            idx = np.unravel_index(np.argmax(Zidx), Zidx.shape)
+            self.cutpoints = [Xidx[idx], Yidx[idx], Zidx[idx]]
+            self.listvol = [Xidx, Yidx, Zidx]
+            return self.cutpoints
+
+        elif self.dimension == 4:
+            if not rng:
+                X = np.arange(self.observer.wavelengths[0] + self.step_size,
+                            self.observer.wavelengths[-1] - self.step_size,
+                            self.step_size)
+                Y = X.copy()
+                W = X.copy()
+            else:
+                X = np.arange(rng[0][0], rng[0][1], self.step_size)
+                Y = np.arange(rng[1][0], rng[1][1], self.step_size)
+                W = np.arange(rng[2][0], rng[2][1], self.step_size)
+
+            # Precompute meshgrid indices
+            Xidx, Yidx, Widx = np.meshgrid(X, Y, W, indexing='ij')
+
+            # Parallel computation of Zidx
+            def compute_volume(i, j, k):
+                if i <= j <= k:
+                    wavelengths = sorted([X[i], Y[j], W[k]])
+                    return self.__computeVolume(wavelengths)
+                return -np.inf
+
+            Zidx = np.array([[[compute_volume(i, j, k) for k in range(len(W))]
+                            for j in range(len(Y))]
+                            for i in tqdm(range(len(X)), disable=not self.verbose)])
+
+            maxvol = np.max(Zidx)
+            idx = np.unravel_index(np.argmax(Zidx), Zidx.shape)
+            self.cutpoints = [Xidx[idx], Yidx[idx], Widx[idx], Zidx[idx]]
+            self.listvol = [Xidx, Yidx, Widx, Zidx]
+            return self.cutpoints
+
+        else:
+            raise NotImplementedError
+    
+    def get_cutpoints(self):
+        return self.cutpoints
+    
+    def get_cmf(self):
+        return self.maximal_sensors
+    
+    def getCutpointTransitions(self, wavelengths):
+        transitions = [[wavelengths[0]], [wavelengths[len(wavelengths)-1]]]
+        transitions += [[wavelengths[i], wavelengths[i+1]] for i in range(len(wavelengths)-1)]
+        transitions.sort()
+        return transitions
 
 def generate_OCS2(curves: list, wavelengths: list, max_basis: bool):
     
@@ -217,9 +290,16 @@ def generate_OCS2(curves: list, wavelengths: list, max_basis: bool):
 
     if (max_basis):
         # Uses ideas from Jessica's paper, on chapter 3.2 The Max Basis.
-        # We use the cutpoints that Jessica shows to be optimal for the trichromatic case.
-        cutpoint_1 = 487
-        cutpoint_2 = 573
+        # Compute optimal cutpoints dynamically using Jessica's code.
+        s1 = Spectra(data=s_response, wavelengths=wavelengths)
+        s2 = Spectra(data=m_response, wavelengths=wavelengths)
+        s3 = Spectra(data=l_response, wavelengths=wavelengths)
+        observer = Observer([s1, s2, s3])
+        max_basis = MaxBasis(observer)
+        cutpoints = max_basis.get_cutpoints()
+        cutpoint_1 = cutpoints[0]
+        cutpoint_2 = cutpoints[1]
+
         index_1 = None
         index_2 = None
         for i, wavelength in enumerate(wavelengths):
@@ -263,6 +343,10 @@ def generate_OCS2(curves: list, wavelengths: list, max_basis: bool):
         face_colors = np.append(face_colors, missing_colors, axis=0)  # Append along the correct axis
 
     return normalized_vertices.tolist(), indices.tolist(), face_colors.tolist()
+
+
+
+
 
 def generate_OCS(min_wavelength: int, max_wavelength: int, response_file_name: str, max_basis: bool):
     
