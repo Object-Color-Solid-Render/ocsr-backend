@@ -17,12 +17,18 @@ def read_csv(file_path):
             # Extract data in the specified format
             common_name = row['Common Name']            # Common Name (string)
             scientific_name = row['Scientific Name']    # Scientific Name (string)
+            template = row['Template']                  # Template (string) 
+            chromophores = row['Chromophores']          # Chromophores (string)
             peaks = process_lambda_values(row)          # List of lambda_max values (int[4])
             source = row['Source']                      # Source (string)    
             note = row['Note']                          # Note (string)  
 
             # Append a tuple with the processed data to the list
             data.append((common_name, scientific_name, peaks, source, note))
+            #data.append((common_name, scientific_name, template, chromophores,peaks, source, note)) # TODO
+
+    # sort data by common_name
+    data.sort(key=lambda x: x[0])
     return data
 
 # Example usage
