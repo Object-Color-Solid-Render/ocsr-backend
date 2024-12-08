@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.utils import secure_filename
 from model_utils import load_obj, calculate_normals
-from ocs_generator import OCSContext4D, OCSGeometry4D, get_4d_ocs_geometry
+from ocs_generator import OCSContext4D, OCSGeometry4D, get_4d_ocs_geometry, center_4d_ocs_geometry
 from shaders import get_vertex_shader, get_fragment_shader
 from ocs_slice import get_ostwald_slice
 from govardovskii import govardovskii_template
@@ -94,7 +94,8 @@ def get_ocs_data():
             entry['isMaxBasis']
         )
 
-        geometry = get_4d_ocs_geometry(generate_context)
+        geometry: OCSGeometry4D = get_4d_ocs_geometry(generate_context)
+        geometry: OCSGeometry4D = center_4d_ocs_geometry(geometry)
 
         data = {
             'vertices': to_list(geometry.vertices),
