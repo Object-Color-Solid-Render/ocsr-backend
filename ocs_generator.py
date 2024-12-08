@@ -409,6 +409,25 @@ class OCSGeometry4D:
     wavelengths: List[int]
     curves: List[List[float]]  # l, m, s, q responses
 
+def center_4d_ocs_geometry(ocs_geometry: OCSGeometry4D) -> OCSGeometry4D:
+    """
+    Given a geometry, center all vertices around the origin.
+    We derive the origin by taking the average of all vertices.
+    """
+    
+    vertices = np.array(ocs_geometry.vertices)
+    avg = np.mean(vertices, axis=0)
+    centered_vertices = vertices - avg
+
+    return OCSGeometry4D(
+        vertices=centered_vertices.tolist(),
+        indices=ocs_geometry.indices,
+        colors=ocs_geometry.colors,
+        normals=ocs_geometry.normals,
+        wavelengths=ocs_geometry.wavelengths,
+        curves=ocs_geometry.curves
+    )
+
 def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
     """
     Generate a single OCS geometry based on the given context
