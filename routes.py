@@ -78,6 +78,7 @@ def get_ocs_data():
                 args.get(f'entries[{index}][isCone3Active]', 'False') == 'true',
                 args.get(f'entries[{index}][isCone4Active]', 'False') == 'true',
             ],
+            'idx': index
         }
         entries.append(entry)
         index += 1
@@ -91,7 +92,8 @@ def get_ocs_data():
             # entry['wavelengthSampleResolution'],
             entry['peaks'],
             entry['activeCones'],
-            entry['isMaxBasis']
+            entry['isMaxBasis'],
+            entry['idx']
         )
 
         geometry: OCSGeometry4D = get_4d_ocs_geometry(generate_context)
