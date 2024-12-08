@@ -131,17 +131,21 @@ def compute_ocs_slice():
     # )
     print("GENERATING SLICE!")
     a, b, c, d = float(request.args.get('a', 0)), float(request.args.get('b', 0)), float(request.args.get('c', 0)), float(request.args.get('d', 0))
-    # TODO: When there are multiple OCS, add indexing
-    intersection_vertices, intersection_colors, indices = get_ostwald_slice(ocs_generator.active_ocs[0], a, b, c, d) 
-    return jsonify(
-        {
+    num_ocs = int(request.args.get('num_ocs', 0))
+
+    response_data = []
+    for i in range(num_ocs):
+        intersection_vertices, intersection_colors, indices = get_ostwald_slice(ocs_generator.active_ocs[i], a, b, c, d) 
+        data = {
             'vertices': intersection_vertices,
             'colors': intersection_colors,
             'indices': indices,
             'vertexShader': get_vertex_shader(),
             'fragmentShader': get_fragment_shader()
         }
-    )
+        response_data.append(data)
+    
+    return jsonify(response_data)
 
 
 @db_routes.route('/get_spectral_db', methods=['GET'])

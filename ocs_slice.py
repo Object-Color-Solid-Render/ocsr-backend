@@ -3,14 +3,13 @@ from math_utils import lms_to_rgb, find_orthogonal_vectors
 from scipy.spatial import ConvexHull, Delaunay
 from ocs_generator import to_list
 
+# Note that all calculations are done based on the all OCS being centered at the origin (as done in the generation code)
 def get_ostwald_slice(ocs: "ObjectColorSolid", a: float, b: float, c: float, d: float):
     # Iterates through each edge and checks whether it intersects the plane.
     # If it does, store the coordinates of the intersection and the XYZ color coordinates of the intersection.
-    intersection_points = []
     # ax + by + cz + d = 0
-
-    # d = - y - 0.5 # FIXME Current hack-y way to account for the translation and scaling done to aesthetically position the OCS
-   
+    intersection_points = []
+    
     if ocs.edges.shape[0] == 0:
         ocs.compute_edges()
 

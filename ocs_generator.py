@@ -480,13 +480,13 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
 
     if len(curves) == 4:
         print("NOT IMPLEMENTED")
-        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
+        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis, ocs_ctx.idx)
         #vertices, indices, colors = generate_4D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
     elif len(curves) == 3:
-        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
+        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis, ocs_ctx.idx)
     elif len(curves) == 2:
         print("NOT IMPLEMENTED")
-        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
+        vertices, indices, colors = generate_3D_OCS(curves, wavelengths, ocs_ctx.is_max_basis, ocs_ctx.idx)
         #vertices, indices, colors = generate_2D_OCS(curves, wavelengths, ocs_ctx.is_max_basis)
 
     normals = calculate_normals(vertices, indices)
