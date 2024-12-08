@@ -11,6 +11,8 @@ from chromalab.spectra import Spectra, Illuminant
 from govardovskii import govardovskii_template
 from model_utils import load_obj, calculate_normals
 
+active_ocs = {}
+
 def peaks_to_curves(
         peaks: list, 
         sample_frequency: int, 
@@ -254,7 +256,7 @@ class ObjectColorSolidTrichromat:
         self.vertices = self.computeVertexBuffer() # shape (n + 1, n, 3) as described in paul centore paper
         self.is_max_basis = is_max_basis
         self.transformation = np.eye(3)
-        self.edges = self.computeEdges()
+        self.edges = np.array([])  # create edges for the first time on the first slice
         if is_max_basis:
             self.transformation = self.applyMaxBasisTransformation()
 
@@ -274,23 +276,23 @@ class ObjectColorSolidTrichromat:
         return vertices
     
     # TODO: Hopefully the format of the vertices is as this function expects it to be
-    def generate_edges(self):
+    def compute_edges(self):
         # Builds up the set of edges from the diagram in (8).
         # There are 2 * (n ** 2) edges in total where n is the number of generating vectors.
         n = len(self.wavelengths)
-        edges = np.zeros((2 * (n ** 2), 2, 3))
+        self.edges = np.zeros((2 * (n ** 2), 2, 3))
         index = 0
         for j in range(n):
             # Vertical edges.
             for i in range(n):
-                edges[index][0] = self.vertices[i][j]
-                edges[index][1] = self.vertices[i + 1][j]
+                self.edges[index][0] = self.vertices[i][j]
+                self.edges[index][1] = self.vertices[i + 1][j]
                 index += 1
                 
             # Diagonal edges.
             for i in range(1, n + 1):
-                edges[index][0] = self.vertices[i][j]
-                edges[index][1] = self.vertices[i - 1][(j + 1) % n]
+                self.edges[index][0] = self.vertices[i][j]
+                self.edges[index][1] = self.vertices[i - 1][(j + 1) % n]
                 index += 1
 
     def applyMaxBasisTransformation(self):
@@ -419,6 +421,7 @@ class OCSContext4D:
     peak_wavelengths: List[int]  # 4 peak wavelengths
     active_cones: List[bool]  # 4 active cones
     is_max_basis: bool
+    idx: int  # The index associated with this OCS
 
 @dataclass
 class OCSGeometry4D:
@@ -441,7 +444,7 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
     assert len(ocs_ctx.active_cones) == 4
 
     print("===== Parameters =====")
-    print("Wavelength Bouunds: ", ocs_ctx.min_sample_wavelength,
+    print("Wavelength Bounds: ", ocs_ctx.min_sample_wavelength,
           ocs_ctx.max_sample_wavelength)
     print("Peak Wavelengths: ", ocs_ctx.peak_wavelengths)
     print("Active Cones: ", ocs_ctx.active_cones)
@@ -478,7 +481,7 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
     assert len(curves) == 4
 
     vertices, indices, colors = generate_OCS(
-        curves, wavelengths, ocs_ctx.is_max_basis)
+        curves, wavelengths, ocs_ctx.is_max_basis, ocs_ctx.idx)
     normals = calculate_normals(vertices, indices)
 
     assert len(vertices) == len(colors)
@@ -495,7 +498,7 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
 
     return ret
 
-def generate_OCS(curves: list, wavelengths: list, is_max_basis: bool):
+def generate_OCS(curves: list, wavelengths: list, is_max_basis: bool, ocs_idx: int):
     
     assert len(curves) == 4
     assert len(wavelengths) == len(curves[0])
@@ -510,6 +513,8 @@ def generate_OCS(curves: list, wavelengths: list, is_max_basis: bool):
     illuminant = Illuminant.get("D65").interpolate_values(wavelengths)
 
     ocs = ObjectColorSolidTrichromat(observer, illuminant, wavelengths, is_max_basis)
+    active_ocs[ocs_idx] = ocs  # Global list of active OCSs
+    print(active_ocs)
 
     tris = quads_to_triangles(ocs.faces, invert_winding=is_max_basis)
     vertices, indices = triangles_to_vertices_indices(tris)

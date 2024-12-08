@@ -5,9 +5,10 @@ from werkzeug.utils import secure_filename
 from model_utils import load_obj, calculate_normals
 from ocs_generator import generate_OCS, OCSContext4D, OCSGeometry4D, get_4d_ocs_geometry
 from shaders import get_vertex_shader, get_fragment_shader
-from ocs_slice import get_y_slice
+from ocs_slice import get_ostwald_slice
 from govardovskii import govardovskii_template
 from spectralDBLoader import read_csv
+import ocs_generator
 
 
 teapot_routes = Blueprint('teapot_routes', __name__)
@@ -81,7 +82,8 @@ def get_ocs_data():
     peaks = [peakWavelength1, peakWavelength2, peakWavelength3, peakWavelength4]
     activeCones = [isCone1Active, isCone2Active, isCone3Active, isCone4Active]
 
-    generate_context: OCSContext4D = OCSContext4D(min_wavelength, max_wavelength, SAMPLES_PER_NM, peaks, activeCones, is_max_basis)
+    # FIXME: Once the frontend renders multiple OCS, pass in the correct index based on the OCS being referenced
+    generate_context: OCSContext4D = OCSContext4D(min_wavelength, max_wavelength, SAMPLES_PER_NM, peaks, activeCones, is_max_basis, idx=0)
 
     geometry: OCSGeometry4D = get_4d_ocs_geometry(generate_context)
 
@@ -117,9 +119,9 @@ def compute_ocs_slice():
     #     float(data.get('y', 0)),
     # )
     print("GENERATING SLICE!")
-    vertices, colors, y = request.args.get('vertices', []), request.args.get('colors', []), float(request.args.get('y', 0))
-    num_wavelengths = 0 # TODO: FIX THIS
-    intersection_vertices, intersection_colors, indices = get_y_slice(vertices, colors, num_wavelengths, y) 
+    a, b, c, d = float(request.args.get('a', 0)), float(request.args.get('b', 0)), float(request.args.get('c', 0)), float(request.args.get('d', 0))
+    # TODO: When there are multiple OCS, add indexing
+    intersection_vertices, intersection_colors, indices = get_ostwald_slice(ocs_generator.active_ocs[0], a, b, c, d) 
     return jsonify(
         {
             'vertices': intersection_vertices,

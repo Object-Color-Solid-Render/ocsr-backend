@@ -1,19 +1,18 @@
 import numpy as np
 from math_utils import lms_to_rgb, find_orthogonal_vectors
 from scipy.spatial import ConvexHull, Delaunay
+from ocs_generator import to_list
 
-
-# TODO: Generalize this to non-human responses. 
-# TODO: Pass in plane equation (a, b, c, d)!
-def get_y_slice(ocs: "ObjectColorSolid", y: float):
+def get_ostwald_slice(ocs: "ObjectColorSolid", a: float, b: float, c: float, d: float):
     # Iterates through each edge and checks whether it intersects the plane.
     # If it does, store the coordinates of the intersection and the XYZ color coordinates of the intersection.
     intersection_points = []
     # ax + by + cz + d = 0
-    a = 0
-    b = 0
-    c = 1
-    d = y
+
+    # d = - y - 0.5 # FIXME Current hack-y way to account for the translation and scaling done to aesthetically position the OCS
+    if ocs.edges.shape[0] == 0:
+        ocs.compute_edges()
+
     for i in range(ocs.edges.shape[0]):
         p1 = ocs.edges[i][0]
         p2 = ocs.edges[i][1]
@@ -39,17 +38,19 @@ def get_y_slice(ocs: "ObjectColorSolid", y: float):
     projection_matrix = np.vstack((vec_a, vec_b))
     projected_intersection_points = intersection_points @ projection_matrix.T
     hull = ConvexHull(projected_intersection_points) 
-
+    hull_vertices = projected_intersection_points[hull.vertices]
     boundary_points = np.hstack(
-        projected_intersection_points[hull.vertices], 
-        np.zeros(projected_intersection_points.shape[0]) # have this lie flat on the XY plane
+        (hull_vertices,
+        np.zeros(hull_vertices.shape[0]).reshape(-1, 1)) # have this lie flat on the XY plane
     )
     boundary_colors = intersection_rgb[hull.vertices]
     
-    delaunay = Delaunay(projected_intersection_points)
-    indices = delaunay.simplices()
+    delaunay = Delaunay(hull_vertices)
+    indices = delaunay.simplices
 
-    return boundary_points.tolist(), boundary_colors.to_list(), indices.tolist()
+    print(boundary_points.shape)
+    print(indices.shape)
+    return to_list(boundary_points), to_list(boundary_colors), to_list(indices)
 
 # def plane_vertices_to_indices(vertices: 'np.NDArray'): 
 #     indices = []
