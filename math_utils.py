@@ -33,6 +33,7 @@ def gamma_correct(rgb):
 
 def lms_to_rgb(lms, to_lms_transformation, max_basis=True):
     # TODO: Note that this uses the human LMS to RGB, and consider implications for non-human OCS
+    # Note that the to_lms_transformation matrix is the identity if it isn't a max-basis solid.
     if max_basis:
         return gamma_correct(np.clip(lms_to_rgb_transformation @ to_lms_transformation @ lms, 0, 1))
     else:

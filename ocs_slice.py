@@ -1,10 +1,10 @@
 import numpy as np
 from math_utils import lms_to_rgb, find_orthogonal_vectors
 from scipy.spatial import ConvexHull, Delaunay
-from ocs_generator import to_list
+from ocs_generator import ObjectColorSolidTrichromat, to_list
 
 # Note that all calculations are done based on the all OCS being centered at the origin (as done in the generation code)
-def get_ostwald_slice(ocs: "ObjectColorSolid", a: float, b: float, c: float, d: float):
+def get_ostwald_slice(ocs: ObjectColorSolidTrichromat, a: float, b: float, c: float, d: float):
     # Iterates through each edge and checks whether it intersects the plane.
     # If it does, store the coordinates of the intersection and the XYZ color coordinates of the intersection.
     # ax + by + cz + d = 0
@@ -29,6 +29,9 @@ def get_ostwald_slice(ocs: "ObjectColorSolid", a: float, b: float, c: float, d: 
 
     # In the end, we obtain an array of points along the boundary of the intersection and their RGB values.
     intersection_points = np.array(intersection_points)
+    if ocs.is_max_basis:
+        intersection_points = intersection_points * 7  # TODO: Figure out why max-basis has the points scaled down? Currently we scale it up here
+
     intersection_rgb = np.array(intersection_rgb)
     
     # We then connect these vertices together to form the outline of the intersection.
