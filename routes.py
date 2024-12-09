@@ -95,24 +95,50 @@ def get_ocs_data():
             entry['isMaxBasis'],
             entry['idx']
         )
+        
+        geometries = [] 
+        
+        if sum(generate_context.active_cones) == 4:  # Tetrachromatic
+            for inactive_idx in range(4):
+                entry['activeCones'][inactive_idx] = False
 
-        geometry: OCSGeometry4D = get_4d_ocs_geometry(generate_context)
-        geometry: OCSGeometry4D = center_4d_ocs_geometry(geometry)
+                tri_context = OCSContext4D(
+                    entry['min_wavelength'],
+                    entry['max_wavelength'],
+                    0.1,
+                    # entry['wavelengthSampleResolution'],
+                    entry['peaks'],
+                    entry['activeCones'],
+                    entry['isMaxBasis'],
+                    entry['idx']
+                )
+                geometry: OCSGeometry4D = get_4d_ocs_geometry(tri_context)
+                geometry = center_4d_ocs_geometry(geometry)
+                geometries.append(geometry)
 
-        data = {
-            'vertices': to_list(geometry.vertices),
-            'indices': to_list(geometry.indices),
-            'normals': to_list(geometry.normals),
-            'colors': to_list(geometry.colors),
-            'vertexShader': get_vertex_shader(),
-            'fragmentShader': get_fragment_shader(),
-            'wavelengths': to_list(geometry.wavelengths),
-            's_response': to_list(geometry.curves[0]),
-            'm_response': to_list(geometry.curves[1]),
-            'l_response': to_list(geometry.curves[2]),
-            'q_response': to_list(geometry.curves[3]),
-        }
-        response_data.append(data)
+                entry['activeCones'][inactive_idx] = True
+        else:
+            geometry: OCSGeometry4D = get_4d_ocs_geometry(generate_context)  
+            geometry: OCSGeometry4D = center_4d_ocs_geometry(geometry)
+            geometries.append(geometry)
+            
+            
+        for geometry in geometries:
+            data =  {
+                'vertices': to_list(geometry.vertices),
+                'indices': to_list(geometry.indices),
+                'normals': to_list(geometry.normals),
+                'colors': to_list(geometry.colors),
+                'vertexShader': get_vertex_shader(),
+                'fragmentShader': get_fragment_shader(),
+                'wavelengths': to_list(geometry.wavelengths),
+                's_response': to_list(geometry.curves[0]),
+                'm_response': to_list(geometry.curves[1]),
+                'l_response': to_list(geometry.curves[2]),
+                'q_response': to_list(geometry.curves[3]),
+            }
+            response_data.append(data)
+        
 
     return jsonify(response_data)
 
