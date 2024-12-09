@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List
 from dataclasses import dataclass
 
@@ -11,7 +12,9 @@ from chromalab.spectra import Spectra, Illuminant
 from govardovskii import govardovskii_template
 from model_utils import load_obj, calculate_normals, convex_2d_hull_to_vbo_ibo, quads_to_triangles, triangles_to_vertices_indices
 
-active_ocs = {}
+# Each OCS may have multiple 3D OCS associated with it. (i.e. 4D has 4 of them)
+# Map from index : [OCSs]
+active_ocs = defaultdict(list) 
 
 def peaks_to_curves(
         cone_peaks: List[float], 
@@ -495,7 +498,7 @@ def generate_3D_OCS(curves: List[List[float]], wavelengths: List[float], is_max_
     illuminant = Illuminant.get("D65").interpolate_values(wavelengths)
 
     ocs = ObjectColorSolidTrichromat(observer, illuminant, wavelengths, is_max_basis)
-    active_ocs[ocs_idx] = ocs  # Update the global dictionary of active OCSs
+    active_ocs[ocs_idx].append(ocs)  # Update the global dictionary of active OCSs
 
     tris = quads_to_triangles(ocs.faces, invert_winding=is_max_basis)
     vertices, indices = triangles_to_vertices_indices(tris)

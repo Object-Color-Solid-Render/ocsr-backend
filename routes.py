@@ -1,3 +1,4 @@
+from collections import defaultdict
 import numpy as np
 import os
 from flask import Blueprint, jsonify, request, current_app
@@ -56,6 +57,9 @@ def get_ocs_data():
 
     entries = []
     args = request.args
+
+    # Should clear the global state holding the OCSs, since we just recompute them
+    ocs_generator.active_ocs = defaultdict(list)
 
     # Parse entries from request arguments
     index = 0
@@ -161,15 +165,16 @@ def compute_ocs_slice():
 
     response_data = []
     for i in range(num_ocs):
-        intersection_vertices, intersection_colors, indices = get_ostwald_slice(ocs_generator.active_ocs[i], a, b, c, d) 
-        data = {
-            'vertices': intersection_vertices,
-            'colors': intersection_colors,
-            'indices': indices,
-            'vertexShader': get_vertex_shader(),
-            'fragmentShader': get_fragment_shader()
-        }
-        response_data.append(data)
+        for ocs in ocs_generator.active_ocs[i]:
+            intersection_vertices, intersection_colors, indices = get_ostwald_slice(ocs, a, b, c, d) 
+            data = {
+                'vertices': intersection_vertices,
+                'colors': intersection_colors,
+                'indices': indices,
+                'vertexShader': get_vertex_shader(),
+                'fragmentShader': get_fragment_shader()
+            }
+            response_data.append(data)
     
     return jsonify(response_data)
 
