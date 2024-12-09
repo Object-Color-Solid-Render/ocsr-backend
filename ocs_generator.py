@@ -215,14 +215,14 @@ class ObjectColorSolidTrichromat:
         for j in range(n):
             # Vertical edges.
             for i in range(n):
-                self.edges[index][0] = self.vertices[i][j]
-                self.edges[index][1] = self.vertices[i + 1][j]
+                self.edges[index][0] = self.max_basis_vertices[i][j]
+                self.edges[index][1] = self.max_basis_vertices[i + 1][j]
                 index += 1
                 
             # Diagonal edges.
             for i in range(1, n + 1):
-                self.edges[index][0] = self.vertices[i][j]
-                self.edges[index][1] = self.vertices[i - 1][(j + 1) % n]
+                self.edges[index][0] = self.max_basis_vertices[i][j]
+                self.edges[index][1] = self.max_basis_vertices[i - 1][(j + 1) % n]
                 index += 1
 
     def computeMaxBasisTransformation(self):
@@ -253,6 +253,7 @@ class ObjectColorSolidTrichromat:
         # and we are mapping them onto the R, G, B points on the RGB cube.
         # We are essentially "stretching" our object color solid so that it approximates the RGB cube.
         transformation_matrix = np.linalg.inv(np.hstack((p1, p2, p3)))
+        print("NUTS!")
         return transformation_matrix
 
     def getCutpointIndices(self, cutpoint_1, cutpoint_2):
