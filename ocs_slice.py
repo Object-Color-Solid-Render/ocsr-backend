@@ -9,7 +9,7 @@ def get_ostwald_slice(ocs: "ObjectColorSolid", a: float, b: float, c: float, d: 
     # If it does, store the coordinates of the intersection and the XYZ color coordinates of the intersection.
     # ax + by + cz + d = 0
     intersection_points = []
-    
+
     if ocs.edges.shape[0] == 0:
         ocs.compute_edges()
 
@@ -43,6 +43,10 @@ def get_ostwald_slice(ocs: "ObjectColorSolid", a: float, b: float, c: float, d: 
         (hull_vertices,
         np.zeros(hull_vertices.shape[0]).reshape(-1, 1)) # have this lie flat on the XY plane
     )
+    
+    # center to zero
+    boundary_points = boundary_points - np.mean(boundary_points, axis=0)
+
     boundary_colors = intersection_rgb[hull.vertices]
     
     delaunay = Delaunay(hull_vertices)
@@ -50,6 +54,7 @@ def get_ostwald_slice(ocs: "ObjectColorSolid", a: float, b: float, c: float, d: 
 
     print(boundary_points.shape)
     print(indices.shape)
+
     return to_list(boundary_points), to_list(boundary_colors), to_list(indices)
 
 # def plane_vertices_to_indices(vertices: 'np.NDArray'): 
