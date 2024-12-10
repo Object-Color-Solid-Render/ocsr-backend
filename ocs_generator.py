@@ -6,8 +6,8 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
-from chromalab.observer import Observer
-from chromalab.spectra import Spectra, Illuminant
+from TetriumColor.Observer import Observer
+from TetriumColor.Observer import Spectra, Illuminant
 
 from pigment_template_functions import govardovskii_template, lamb_template
 from model_utils import load_obj, calculate_normals, convex_2d_hull_to_vbo_ibo, quads_to_triangles, triangles_to_vertices_indices
