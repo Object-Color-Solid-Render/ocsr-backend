@@ -40,8 +40,6 @@ pillow==11.0.0
 platformdirs==4.3.6
 plotly==5.24.1
 pyllist==0.3
-pyobjc-core==10.3.2
-pyobjc-framework-Cocoa==10.3.2
 pyparsing==3.2.0
 pyquaternion==0.9.9
 pyserial==3.5
