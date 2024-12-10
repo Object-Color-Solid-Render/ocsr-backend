@@ -7,8 +7,7 @@ from model_utils import load_obj, calculate_normals
 from ocs_generator import OCSContext4D, OCSGeometry4D, get_4d_ocs_geometry, center_4d_ocs_geometry
 from shaders import get_vertex_shader, get_fragment_shader
 from ocs_slice import get_ostwald_slice
-from govardovskii import govardovskii_template
-from spectralDBLoader import read_csv
+from spectral_db_loader import read_csv
 import ocs_generator
 
 
@@ -69,6 +68,7 @@ def get_ocs_data():
             'max_wavelength': int(args.get(f'entries[{index}][maxWavelength]', 700)),
             'omitBetaBand': args.get(f'entries[{index}][omitBetaBand]', 'False') == 'true',
             'isMaxBasis': args.get(f'entries[{index}][isMaxBasis]', 'False') == 'true',
+            'pigmentTemplateFunction': args.get(f'entries[{index}][pigmentTemplateFunction]', 'Govardovskii'),
             'wavelengthSampleResolution': float(args.get(f'entries[{index}][wavelengthSampleResolution]', 1.0)),
             'peaks': [
                 int(args.get(f'entries[{index}][peakWavelength1]', 500)),
@@ -97,6 +97,7 @@ def get_ocs_data():
             entry['peaks'],
             entry['activeCones'],
             entry['isMaxBasis'],
+            entry['pigmentTemplateFunction'],
             entry['idx']
         )
         
@@ -114,6 +115,7 @@ def get_ocs_data():
                     entry['peaks'],
                     entry['activeCones'],
                     entry['isMaxBasis'],
+                    entry['pigmentTemplateFunction'],
                     entry['idx']
                 )
                 geometry: OCSGeometry4D = get_4d_ocs_geometry(tri_context)

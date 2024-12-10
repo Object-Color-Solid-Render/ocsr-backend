@@ -63,3 +63,44 @@ def govardovskii_template(
     normalized_sensitivity = total_sensitivity / np.max(total_sensitivity)
     
     return normalized_sensitivity
+
+def lamb_template(
+        wavelengths, 
+        lambda_max
+        ):
+    """
+    Computes the Lamb visual pigment template.
+
+    Parameters:
+    wavelengths : array-like
+        Wavelengths at which to evaluate the template (nm)
+    lambda_max : float
+        Peak wavelength of the visual pigment (nm)
+
+    Returns:
+    normalized_sensitivity : array
+        Array of normalized sensitivity values
+    """
+    # Constants
+    A = 0.880
+    B = 0.924
+    C = 1.104
+    D = 0.655
+    a = 70
+    b = 28.5
+    c = -14.1
+
+    # Compute spectral sensitivity for each wavelength in the specified range
+    wavelengths = np.asarray(wavelengths)
+    r = lambda_max / wavelengths
+    a_ = a * (A - r)
+    b_ = b * (B - r)
+    c_ = c * (C - r)
+
+    S_lambda_1 = np.exp(a_) + np.exp(b_) + np.exp(c_) + D
+    S_lambda = 1 / S_lambda_1
+
+    # Normalize
+    normalized_sensitivity = S_lambda / np.max(S_lambda)
+
+    return normalized_sensitivity
