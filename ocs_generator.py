@@ -17,10 +17,10 @@ from model_utils import load_obj, calculate_normals, convex_2d_hull_to_vbo_ibo, 
 active_ocs = defaultdict(list) 
 
 def peaks_to_curves(
+        pigment_template_function: str,
         cone_peaks: List[float], 
         active_cones: List[bool], 
-        sampling_wavelengths: List[float],
-        omit_beta_band: bool = True
+        sampling_wavelengths: List[float]
         ):
     """Convert a list of peaks into a list of curves"""
     
@@ -38,12 +38,25 @@ def peaks_to_curves(
 
     curves = []
     for peak in activePeaks:
-        spectral_sensitivity = govardovskii_template(
-            sampling_wavelengths, 
-            peak, 
-            A1_proportion=100,
-            omit_beta_band=omit_beta_band
-            )
+        if pigment_template_function == "Govardovskii":
+            spectral_sensitivity = govardovskii_template(
+                sampling_wavelengths, 
+                peak, 
+                A1_proportion=100,
+                omit_beta_band=True
+                )
+        elif pigment_template_function == "Lamb":
+            spectral_sensitivity = lamb_template(
+                sampling_wavelengths, 
+                peak, 
+                )
+        else:   # default to Govardovskii
+            spectral_sensitivity = govardovskii_template(
+                sampling_wavelengths, 
+                peak, 
+                A1_proportion=100,
+                omit_beta_band=True
+                )
         curves.append(spectral_sensitivity)
 
     return curves
@@ -256,7 +269,6 @@ class ObjectColorSolidTrichromat:
         # and we are mapping them onto the R, G, B points on the RGB cube.
         # We are essentially "stretching" our object color solid so that it approximates the RGB cube.
         transformation_matrix = np.linalg.inv(np.hstack((p1, p2, p3)))
-        print("NUTS!")
         return transformation_matrix
 
     def getCutpointIndices(self, cutpoint_1, cutpoint_2):
@@ -352,6 +364,7 @@ class OCSContext4D:
     peak_wavelengths: List[int]  # 4 peak wavelengths
     active_cones: List[bool]  # 4 active cones
     is_max_basis: bool
+    pigment_template_function: str
     idx: int  # The index associated with this OCS
 
 @dataclass
@@ -399,6 +412,7 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
           ocs_ctx.max_sample_wavelength)
     print("Peak Wavelengths: ", ocs_ctx.peak_wavelengths)
     print("Active Cones: ", ocs_ctx.active_cones)
+    print("Pigment Template Function: ", ocs_ctx.pigment_template_function)
 
     wavelength_sample_resolution: int = int(ocs_ctx.sample_per_wavelength *
                                             (ocs_ctx.max_sample_wavelength -
@@ -411,7 +425,11 @@ def get_4d_ocs_geometry(ocs_ctx: OCSContext4D) -> OCSGeometry4D:
         ocs_ctx.max_sample_wavelength, 
         num=wavelength_sample_resolution)  # type: ignore
 
-    curves = peaks_to_curves(ocs_ctx.peak_wavelengths, ocs_ctx.active_cones, wavelengths)
+    curves = peaks_to_curves(ocs_ctx.pigment_template_function, 
+                             ocs_ctx.peak_wavelengths, 
+                             ocs_ctx.active_cones, 
+                             wavelengths
+                            )
 
     if len(curves) == 4:
         print("NOT IMPLEMENTED")
