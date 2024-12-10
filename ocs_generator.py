@@ -9,7 +9,7 @@ import pandas as pd
 from chromalab.observer import Observer
 from chromalab.spectra import Spectra, Illuminant
 
-from govardovskii import govardovskii_template
+from pigment_template_functions import govardovskii_template, lamb_template
 from model_utils import load_obj, calculate_normals, convex_2d_hull_to_vbo_ibo, quads_to_triangles, triangles_to_vertices_indices
 
 # Each OCS may have multiple 3D OCS associated with it. (i.e. 4D has 4 of them)
@@ -445,11 +445,11 @@ def generate_2D_OCS(curves: List[List[float]], wavelengths: List[float], is_max_
     assert len(curves) == 2
     assert len(wavelengths) == len(curves[0])
 
-    # Cone responses of a typical trichromat.
-    n = len(wavelengths)
+    S, M = curves
 
+    n = len(wavelengths)
     illuminant = Illuminant.get("D65").interpolate_values(wavelengths)
-    dichrom_responses = np.vstack((curves[0], curves[1]))  # Combine responses into a 2D array (2 x n)
+    dichrom_responses = np.vstack((S, M))  # Combine responses into a 2D array (2 x n)
     points = np.copy(dichrom_responses).T # generating vectors
 
     # generate a list of optimal color vertices from the locus 

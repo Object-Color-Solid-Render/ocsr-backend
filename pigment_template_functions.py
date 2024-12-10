@@ -63,3 +63,28 @@ def govardovskii_template(
     normalized_sensitivity = total_sensitivity / np.max(total_sensitivity)
     
     return normalized_sensitivity
+
+def lamb_template(
+        wavelengths, 
+        lambda_max
+        ):
+    
+    # Constants
+    A = 0.880
+    B = 0.924
+    C = 1.104
+    D = 0.655
+    a = 70
+    b = 28.5
+    c = -14.1
+    
+    # Compute spectral sensitivity for each wavelength in the specified range
+    r = lambda_max / wavelengths
+    a_ = a * (A - r)
+    b_ = b * (B - r)
+    c_ = c * (C - r)
+    
+    S_lambda_1 = np.exp(a_) + np.exp(b_) + np.exp(c_) + D
+    S_lambda = 1 / S_lambda_1
+    
+    return wavelengths, S_lambda
